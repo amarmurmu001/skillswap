@@ -1,6 +1,13 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getCurrentUser, login as authLogin, register as authRegister, logout as authLogout, onAuthStateChange } from '@/lib/auth';
+import {
+  getCurrentUser,
+  getSessionUser,
+  login as authLogin,
+  register as authRegister,
+  logout as authLogout,
+  onAuthStateChange,
+} from '@/lib/auth';
 import { updateUser } from '@/lib/data';
 
 const AuthContext = createContext(null);
@@ -10,8 +17,17 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getCurrentUser().then(u => { setUser(u); setLoading(false); });
+    // Fast path on mount:
+    // getSessionUser() reads the JWT from localStorage (no server round-trip),
+    // then fetches the profile — only 1 network hop instead of 2.
+    // This eliminates the blank-spinner delay on return visits.
+    getSessionUser().then(u => {
+      setUser(u);
+      setLoading(false);
+    });
 
+    // Auth state changes (login, logout, token refresh) still go through
+    // getCurrentUser() which validates the JWT with the server.
     const { data: { subscription } } = onAuthStateChange(async (event) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         const u = await getCurrentUser();
@@ -25,13 +41,13 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const result = await authLogin(email, password);
-    if (!result.error) setUser(await getCurrentUser());
+    if (!result.error) setUser(result.user ?? (await getCurrentUser()));
     return result;
   }, []);
 
   const register = useCallback(async (data) => {
     const result = await authRegister(data);
-    if (!result.error) setUser(await getCurrentUser());
+    if (!result.error) setUser(result.user ?? (await getCurrentUser()));
     return result;
   }, []);
 

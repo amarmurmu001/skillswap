@@ -1,39 +1,99 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import {
-  getUsers, getMatchesForUser, getSessionsForUser,
-  getReviews, updateUser, updateMatchStatus,
+  getAllProfilesForAdmin,
+  getAllMatchesForAdmin,
+  getReviews,
+  updateUser,
+  updateMatchStatus,
 } from '@/lib/data';
 import StarRating from '@/components/StarRating';
 import { formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export default function AdminPage() {
-  const { user } = useAuth();
-  const [tab, setTab]     = useState('users');
-  const [refresh, setRefresh] = useState(0);
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [tab, setTab] = useState('users');
+  const [allUsers, setAllUsers] = useState([]);
+  const [allMatches, setAllMatches] = useState([]);
+  const [allReviews, setAllReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  if (!user) return null;
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [users, matches, reviews] = await Promise.all([
+        getAllProfilesForAdmin(),
+        getAllMatchesForAdmin(),
+        getReviews(),
+      ]);
+      setAllUsers(users);
+      setAllMatches(matches);
+      setAllReviews(reviews);
+    } catch (err) {
+      toast.error(err.message || 'Failed to load admin data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const allUsers   = getUsers();
-  const allMatches = allUsers.flatMap(u => getMatchesForUser(u.id).filter(m => m.userAId === u.id));
-  const allReviews = getReviews();
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) return;
+    if (!user.isAdmin) {
+      router.replace('/dashboard');
+      return;
+    }
+    load();
+  }, [user, authLoading, router, load]);
 
-  const stats = [
-    { label: 'Total Users',    value: allUsers.length,   icon: '👥', color: '#6366f1' },
-    { label: 'Active Matches', value: allMatches.filter(m => m.status === 'active').length, icon: '✨', color: '#10b981' },
-    { label: 'Pending',        value: allMatches.filter(m => m.status === 'pending').length, icon: '⏳', color: '#f59e0b' },
-    { label: 'Reviews',        value: allReviews.length, icon: '⭐', color: '#d946ef' },
-  ];
-
-  function toggleBan(userId) {
+  async function toggleBan(userId) {
     const u = allUsers.find(x => x.id === userId);
     if (!u) return;
-    updateUser(userId, { banned: !u.banned });
-    toast.success(u.banned ? 'User unbanned ✅' : 'User banned 🚫');
-    setRefresh(r => r + 1);
+    try {
+      await updateUser(userId, { banned: !u.banned });
+      toast.success(u.banned ? 'User unbanned' : 'User banned');
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Could not update user');
+    }
+  }
+
+  async function removeMatch(matchId) {
+    try {
+      await updateMatchStatus(matchId, 'rejected');
+      toast.success('Match removed');
+      load();
+    } catch (err) {
+      toast.error(err.message || 'Could not update match');
+    }
+  }
+
+  if (authLoading || !user?.isAdmin) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '5rem' }}>
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  const stats = [
+    { label: 'Total Users', value: allUsers.length, icon: '👥', color: '#6366f1' },
+    { label: 'Active Matches', value: allMatches.filter(m => m.status === 'active').length, icon: '✨', color: '#10b981' },
+    { label: 'Pending', value: allMatches.filter(m => m.status === 'pending').length, icon: '⏳', color: '#f59e0b' },
+    { label: 'Reviews', value: allReviews.length, icon: '⭐', color: '#d946ef' },
+  ];
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '5rem' }}>
+        <div className="spinner" />
+      </div>
+    );
   }
 
   return (
@@ -175,7 +235,7 @@ export default function AdminPage() {
                       <td style={{ padding: '0.875rem 1rem' }}>
                         {m.status !== 'rejected' && (
                           <button
-                            onClick={() => { updateMatchStatus(m.id, 'rejected'); toast('Match removed'); setRefresh(r => r + 1); }}
+                            onClick={() => removeMatch(m.id)}
                             style={{ padding: '0.3rem 0.75rem', borderRadius: '0.5rem', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600 }}
                           >
                             Remove

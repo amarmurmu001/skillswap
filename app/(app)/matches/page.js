@@ -1,29 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { getMatchesForUser, getUserById, getSkillsByIds, createMatchRequest, updateMatchStatus, addNotification } from '@/lib/data';
-import { getMatchSuggestions } from '@/lib/matching';
+import { getMatchesForUser, getUsersByIds, createMatchRequest, updateMatchStatus, addNotification } from '@/lib/data';
+import { getMatchSuggestionsFromList } from '@/lib/matching';
+import { useAppData } from '@/context/AppDataContext';
 import MatchCard from '@/components/MatchCard';
 import toast from 'react-hot-toast';
 
 export default function MatchesPage() {
   const { user } = useAuth();
+  const { users, ready } = useAppData();
   const [tab, setTab]           = useState('suggestions');
   const [suggestions, setSuggestions] = useState([]);
   const [matches, setMatches]   = useState([]);
   const [loading, setLoading]   = useState(true);
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const [m, s] = await Promise.all([getMatchesForUser(user.id), getMatchSuggestions(user)]);
+    const m = await getMatchesForUser(user.id);
     setMatches(m);
-    setSuggestions(s);
+    if (ready) setSuggestions(getMatchSuggestionsFromList(user, users));
     setLoading(false);
-  }
+  }, [user?.id, ready, users]);
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [load]);
 
   async function handleSendRequest(otherUserId, score, isPerfect) {
     await createMatchRequest(user.id, otherUserId, score, isPerfect);
@@ -45,13 +47,14 @@ export default function MatchesPage() {
   }
 
   const byStatus = (status) => matches.filter(m => m.status === status);
+  const pendingForMe = matches.filter(m => m.status === 'pending' && m.userBId === user?.id);
   const existingMatchFor = (otherId) => matches.find(m => m.userAId === otherId || m.userBId === otherId);
 
   const TABS = [
-    { key: 'suggestions', label: '✨ Suggestions', count: suggestions.length },
-    { key: 'pending',     label: '⏳ Pending',     count: byStatus('pending').length },
-    { key: 'active',      label: '💬 Active',      count: byStatus('active').length },
-    { key: 'completed',   label: '✅ Completed',   count: byStatus('completed').length },
+    { key: 'suggestions', label: 'Suggestions', count: suggestions.length },
+    { key: 'pending',     label: 'Pending',     count: byStatus('pending').length + pendingForMe.length },
+    { key: 'active',      label: 'Active',      count: byStatus('active').length },
+    { key: 'rejected',    label: 'Declined',    count: byStatus('rejected').length },
   ];
 
   if (!user) return null;
@@ -106,15 +109,22 @@ export default function MatchesPage() {
 function MatchListByStatus({ matches, userId, onAccept, onReject }) {
   const [enriched, setEnriched] = useState([]);
   useEffect(() => {
-    async function load() {
-      const result = await Promise.all(matches.map(async m => {
-        const otherId = m.userAId === userId ? m.userBId : m.userAId;
-        const other   = await getUserById(otherId);
-        return { match: m, other };
-      }));
-      setEnriched(result.filter(r => r.other));
+    if (!matches.length) {
+      setEnriched([]);
+      return;
     }
-    load();
+    const otherIds = matches.map(m => (m.userAId === userId ? m.userBId : m.userAId));
+    getUsersByIds(otherIds).then(map => {
+      setEnriched(
+        matches
+          .map(m => {
+            const otherId = m.userAId === userId ? m.userBId : m.userAId;
+            const other = map[otherId];
+            return other ? { match: m, other } : null;
+          })
+          .filter(Boolean)
+      );
+    });
   }, [matches, userId]);
 
   if (enriched.length === 0) return (

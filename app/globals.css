@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+/* Fonts are loaded via next/font/google in layout.js — no @import needed */
 
 @tailwind base;
 @tailwind components;
@@ -31,7 +31,7 @@ html {
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-inter, 'Inter'), system-ui, sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
 }
@@ -353,7 +353,7 @@ body {
 
 .score-ring .score-text {
   position: absolute;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-outfit, 'Outfit'), sans-serif;
   font-weight: 700;
 }
 
@@ -371,5 +371,36 @@ body {
 
 /* Toast overrides */
 .toast-container {
-  font-family: 'Inter', sans-serif !important;
+  font-family: var(--font-inter, 'Inter'), sans-serif !important;
+}
+
+/* ─── Mobile bottom navigation ────────────────────────────────────────────── */
+.mobile-nav {
+  display: none; /* hidden on desktop */
+}
+
+@media (max-width: 768px) {
+  /* Show the bottom nav */
+  .mobile-nav {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: rgba(10, 10, 15, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(99, 102, 241, 0.14);
+    z-index: 90;
+  }
+
+  /* Add bottom padding so main content doesn't hide behind the nav */
+  .app-main {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Hide the desktop top navbar on mobile to avoid double navigation */
+  /* Comment this out if you prefer to keep both */
+  /* nav:first-of-type { display: none; } */
 }

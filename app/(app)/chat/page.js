@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { getMatchesForUser, getUserById, getMessagesByMatch } from '@/lib/data';
+import { getChatConversations } from '@/lib/data';
 import { timeAgo } from '@/lib/utils';
 import ChatBox from '@/components/ChatBox';
 
@@ -15,19 +15,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (!user) return;
     async function load() {
-      const matches = await getMatchesForUser(user.id);
-      const active  = matches.filter(m => m.status === 'active');
-      const convos  = await Promise.all(active.map(async m => {
-        const otherId  = m.userAId === user.id ? m.userBId : m.userAId;
-        const [other, messages] = await Promise.all([getUserById(otherId), getMessagesByMatch(m.id)]);
-        const lastMsg = messages[messages.length - 1];
-        return { match: m, other, lastMsg };
-      }));
-      convos.sort((a, b) => {
-        const ta = a.lastMsg ? new Date(a.lastMsg.createdAt) : new Date(a.match.createdAt);
-        const tb = b.lastMsg ? new Date(b.lastMsg.createdAt) : new Date(b.match.createdAt);
-        return tb - ta;
-      });
+      const convos = await getChatConversations(user.id);
       setConversations(convos);
       setLoading(false);
     }
@@ -45,7 +33,9 @@ export default function ChatPage() {
   if (conversations.length === 0) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '70vh', padding: '2rem' }}>
       <div style={{ textAlign: 'center', color: '#a0a0c0' }}>
-        <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>💬</div>
+        <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
         <h2 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, fontSize: '1.4rem', marginBottom: '0.5rem', color: '#f0f0ff' }}>No conversations yet</h2>
         <p style={{ marginBottom: '1.5rem', fontSize: '0.9rem' }}>Accept a match request to start chatting</p>
         <a href="/matches" className="btn-primary" style={{ textDecoration: 'none' }}><span>Find Matches</span></a>
@@ -94,11 +84,14 @@ export default function ChatPage() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: '0.975rem' }}>{activeConvo.other?.name}</div>
-              <div style={{ color: activeConvo.other?.isOnline ? '#4ade80' : '#6b7280', fontSize: '0.78rem' }}>{activeConvo.other?.isOnline ? '● Online' : '○ Offline'}</div>
+              <div style={{ color: activeConvo.other?.isOnline ? '#4ade80' : '#6b7280', fontSize: '0.78rem' }}>
+                <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: activeConvo.other?.isOnline ? '#4ade80' : '#6b7280', marginRight: 5, verticalAlign: 'middle' }} />
+                {activeConvo.other?.isOnline ? 'Online' : 'Offline'}
+              </div>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <a href={`https://meet.jit.si/skillswap-${activeConvo.match.id}`} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem', textDecoration: 'none' }}><span>🎥 Video Call</span></a>
-              <a href="/sessions" className="btn-secondary" style={{ fontSize: '0.8rem', padding: '0.5rem 0.875rem', textDecoration: 'none' }}>📅 Schedule</a>
+              <a href={`https://meet.jit.si/skillswap-${activeConvo.match.id}`} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem', textDecoration: 'none' }}><span>Video Call</span></a>
+              <a href="/sessions" className="btn-secondary" style={{ fontSize: '0.8rem', padding: '0.5rem 0.875rem', textDecoration: 'none' }}>Schedule</a>
             </div>
           </div>
           <ChatBox matchId={activeConvo.match.id} currentUserId={user.id} otherUser={activeConvo.other} />

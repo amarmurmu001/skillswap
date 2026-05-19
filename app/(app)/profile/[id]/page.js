@@ -1,12 +1,14 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
-  getUserById, getSkillsByIds, getReviewsForUser,
+  getUserById, getReviewsForUserWithReviewers,
   getMatchesForUser, createMatchRequest, addNotification,
 } from '@/lib/data';
 import { scorePair } from '@/lib/matching';
+import { useAppData } from '@/context/AppDataContext';
 import SkillTag from '@/components/SkillTag';
 import StarRating from '@/components/StarRating';
 import { formatDate } from '@/lib/utils';
@@ -16,8 +18,51 @@ import toast from 'react-hot-toast';
 export default function UserProfilePage() {
   const { id } = useParams();
   const { user: currentUser } = useAuth();
+  const { resolveSkills } = useAppData();
 
-  const profile = getUserById(id);
+  const [profile, setProfile] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [reviewers, setReviewers] = useState({});
+  const [existingMatch, setExistingMatch] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    async function load() {
+      setLoading(true);
+      try {
+        const p = await getUserById(id);
+        if (!p) {
+          setProfile(null);
+          return;
+        }
+        const [{ reviews: rev, reviewers: revUsers }, matches] = await Promise.all([
+          getReviewsForUserWithReviewers(p.id),
+          currentUser ? getMatchesForUser(currentUser.id) : Promise.resolve([]),
+        ]);
+        setProfile(p);
+        setReviews(rev);
+        setReviewers(revUsers);
+        setExistingMatch(
+          matches.find(m => m.userAId === p.id || m.userBId === p.id) || null
+        );
+      } catch {
+        toast.error('Failed to load profile');
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [id, currentUser]);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '5rem' }}>
+        <div className="spinner" />
+      </div>
+    );
+  }
   if (!profile) {
     return (
       <div style={{ textAlign: 'center', padding: '5rem 2rem', color: '#a0a0c0' }}>
@@ -28,30 +73,33 @@ export default function UserProfilePage() {
     );
   }
 
-  const reviews       = getReviewsForUser(profile.id);
-  const offeredSkills = getSkillsByIds(profile.skillsOffered);
-  const wantedSkills  = getSkillsByIds(profile.skillsWanted);
+  const offeredSkills = resolveSkills(profile?.skillsOffered || []);
+  const wantedSkills = resolveSkills(profile?.skillsWanted || []);
 
   const { score, isPerfect, iCanTeachThem, theyCanTeachMe } = currentUser
     ? scorePair(currentUser, profile)
     : { score: 0, isPerfect: false, iCanTeachThem: [], theyCanTeachMe: [] };
 
-  const existingMatches = currentUser ? getMatchesForUser(currentUser.id) : [];
-  const existingMatch   = existingMatches.find(
-    m => m.userAId === profile.id || m.userBId === profile.id
-  );
-
-  function handleConnect() {
-    if (!currentUser || existingMatch) return;
-    createMatchRequest(currentUser.id, profile.id, score, isPerfect);
-    addNotification({
-      userId: profile.id,
-      type: 'match_request',
-      title: 'New Match Request',
-      message: `${currentUser.name} wants to swap skills with you!`,
-      link: '/matches',
-    });
-    toast.success('Match request sent! ✨');
+  async function handleConnect() {
+    if (!currentUser || existingMatch || connecting) return;
+    setConnecting(true);
+    try {
+      await createMatchRequest(currentUser.id, profile.id, score, isPerfect);
+      await addNotification({
+        userId: profile.id,
+        type: 'match_request',
+        title: 'New Match Request',
+        message: `${currentUser.name} wants to swap skills with you!`,
+        link: '/matches',
+      });
+      toast.success('Match request sent!');
+      const matches = await getMatchesForUser(currentUser.id);
+      setExistingMatch(matches.find(m => m.userAId === profile.id || m.userBId === profile.id) || null);
+    } catch (err) {
+      toast.error(err.message || 'Could not send request');
+    } finally {
+      setConnecting(false);
+    }
   }
 
   return (
@@ -107,8 +155,8 @@ export default function UserProfilePage() {
                   )}
                 </div>
               ) : (
-                <button onClick={handleConnect} className="btn-primary" style={{ fontSize: '0.875rem' }}>
-                  <span>✨ Connect</span>
+                <button onClick={handleConnect} disabled={connecting} className="btn-primary" style={{ fontSize: '0.875rem' }}>
+                  <span>{connecting ? 'Sending…' : '✨ Connect'}</span>
                 </button>
               )}
             </div>
@@ -152,25 +200,31 @@ export default function UserProfilePage() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {reviews.map(r => {
-                const reviewer = getUserById(r.reviewerId);
-                return (
-                  <div key={r.id} style={{ padding: '1rem', background: 'rgba(17,17,24,0.6)', borderRadius: '0.875rem', border: '1px solid rgba(99,102,241,0.1)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.5rem' }}>
-                      {reviewer && <img src={reviewer.avatar} alt="" style={{ width: 30, height: 30, borderRadius: '50%', background: '#1a1a27' }} />}
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.82rem' }}>{reviewer?.name}</div>
-                        <StarRating value={r.rating} readonly size="sm" />
-                      </div>
-                    </div>
-                    {r.comment && <p style={{ color: '#a0a0c0', fontSize: '0.82rem', lineHeight: 1.5, fontStyle: 'italic' }}>"{r.comment}"</p>}
-                  </div>
-                );
-              })}
+              {reviews.map(r => (
+                <ProfileReviewItem key={r.id} review={r} reviewer={reviewers[r.reviewerId]} />
+              ))}
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ProfileReviewItem({ review, reviewer }) {
+  return (
+    <div style={{ padding: '1rem', background: 'rgba(17,17,24,0.6)', borderRadius: '0.875rem', border: '1px solid rgba(99,102,241,0.1)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.625rem' }}>
+        {reviewer && <img src={reviewer.avatar} alt="" style={{ width: 32, height: 32, borderRadius: '50%', background: '#1a1a27' }} />}
+        <div>
+          <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{reviewer?.name || '…'}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <StarRating value={review.rating} readonly size="sm" />
+            {review.skillTaught && <span style={{ fontSize: '0.72rem', color: '#818cf8' }}>{review.skillTaught}</span>}
+          </div>
+        </div>
+      </div>
+      {review.comment && <p style={{ color: '#a0a0c0', fontSize: '0.82rem', lineHeight: 1.5, fontStyle: 'italic' }}>"{review.comment}"</p>}
     </div>
   );
 }

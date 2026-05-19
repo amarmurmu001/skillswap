@@ -2,52 +2,91 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
+import { supabase } from '@/lib/supabase';
 
 const SocketContext = createContext(null);
 
-// Since we're using a demo without a real server, we simulate real-time
-// via localStorage events. In production, connect to your Socket.io server.
+/**
+ * Provides real-time event delivery via Supabase Realtime.
+ *
+ * Replaces the old localStorage cross-tab hack — now works across
+ * different devices and users via Postgres CDC.
+ *
+ * Supported events emitted to listeners:
+ *   - 'new_notification'  — fired when a new notifications row is inserted
+ *                           for the current user.
+ */
 export function SocketProvider({ children }) {
   const { user } = useAuth();
   const [connected, setConnected] = useState(false);
   const listenersRef = useRef({});
 
+  // ─── Supabase Realtime: notifications ─────────────────────────────────────
   useEffect(() => {
-    if (!user) return;
-    setConnected(true);
+    if (!user?.id) {
+      setConnected(false);
+      return;
+    }
 
-    // Listen for storage events (simulates real-time between tabs)
-    const handler = (e) => {
-      if (e.key === 'ss_socket_event') {
-        try {
-          const { event, data } = JSON.parse(e.newValue);
-          const listeners = listenersRef.current[event] || [];
-          listeners.forEach(fn => fn(data));
-        } catch {}
-      }
-    };
+    const channel = supabase
+      .channel(`notifications:user:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const raw = payload.new;
+          const notification = {
+            id:        raw.id,
+            userId:    raw.user_id,
+            type:      raw.type,
+            title:     raw.title,
+            message:   raw.message,
+            isRead:    raw.is_read,
+            link:      raw.link,
+            createdAt: raw.created_at,
+          };
+          const handlers = listenersRef.current['new_notification'] || [];
+          handlers.forEach((fn) => fn(notification));
+        }
+      )
+      .subscribe((status) => {
+        setConnected(status === 'SUBSCRIBED');
+      });
 
-    window.addEventListener('storage', handler);
     return () => {
-      window.removeEventListener('storage', handler);
+      supabase.removeChannel(channel);
       setConnected(false);
     };
-  }, [user]);
+  }, [user?.id]);
 
-  const emit = (event, data) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('ss_socket_event', JSON.stringify({ event, data, ts: Date.now() }));
-    }
-  };
-
+  /**
+   * Register a listener for a named event.
+   * Returns an unsubscribe function.
+   */
   const on = (event, handler) => {
     if (!listenersRef.current[event]) {
       listenersRef.current[event] = [];
     }
     listenersRef.current[event].push(handler);
     return () => {
-      listenersRef.current[event] = listenersRef.current[event].filter(h => h !== handler);
+      listenersRef.current[event] = listenersRef.current[event].filter(
+        (h) => h !== handler
+      );
     };
+  };
+
+  /**
+   * Emit an event locally (same-tab only).
+   * Kept for backwards-compatibility; server-side events arrive via Realtime.
+   */
+  const emit = (event, data) => {
+    const handlers = listenersRef.current[event] || [];
+    handlers.forEach((fn) => fn(data));
   };
 
   return (

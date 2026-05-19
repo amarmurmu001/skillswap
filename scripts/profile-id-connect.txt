@@ -1,0 +1,21 @@
+  async function handleConnect() {
+    if (!currentUser || existingMatch || connecting) return;
+    setConnecting(true);
+    try {
+      await createMatchRequest(currentUser.id, profile.id, score, isPerfect);
+      await addNotification({
+        userId: profile.id,
+        type: 'match_request',
+        title: 'New Match Request',
+        message: `${currentUser.name} wants to swap skills with you!`,
+        link: '/matches',
+      });
+      toast.success('Match request sent!');
+      const matches = await getMatchesForUser(currentUser.id);
+      setExistingMatch(matches.find(m => m.userAId === profile.id || m.userBId === profile.id) || null);
+    } catch (err) {
+      toast.error(err.message || 'Could not send request');
+    } finally {
+      setConnecting(false);
+    }
+  }

@@ -1,34 +1,58 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { getStats } from '@/lib/data';
+import {
+  HiOutlineSparkles,
+  HiOutlineChatBubbleLeftRight,
+  HiOutlineCalendarDays,
+  HiOutlineStar,
+  HiOutlineVideoCamera,
+  HiOutlineGlobeAlt,
+} from 'react-icons/hi2';
 
 export default function HomePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [liveStats, setLiveStats] = useState(null);
 
   useEffect(() => {
     if (!loading && user) router.replace('/dashboard');
   }, [user, loading, router]);
 
+  // Fetch live stats (runs even when logged out — no auth required for counts)
+  useEffect(() => {
+    getStats().then(setLiveStats).catch(() => {});
+  }, []);
+
   if (loading) return null;
 
   const features = [
-    { icon: '✨', title: 'Smart Matching', desc: 'Our algorithm finds users where both sides can teach and learn simultaneously.' },
-    { icon: '💬', title: 'Real-time Chat', desc: 'Instantly message your matches to plan sessions and build connections.' },
-    { icon: '📅', title: 'Session Scheduler', desc: 'Book sessions directly in-app with auto-generated Jitsi video links.' },
-    { icon: '⭐', title: 'Reputation System', desc: 'Reviews and ratings keep the community high-quality and trustworthy.' },
-    { icon: '🎥', title: 'Free Video Calls', desc: 'Integrated Jitsi Meet — 100% free HD video calling, no account needed.' },
-    { icon: '🌍', title: 'Global Community', desc: 'Connect with skill enthusiasts across the world for free exchanges.' },
+    { Icon: HiOutlineSparkles,           title: 'Smart Matching',     desc: 'Our algorithm pairs users where both sides can teach and learn simultaneously.' },
+    { Icon: HiOutlineChatBubbleLeftRight, title: 'Real-time Chat',     desc: 'Instantly message your matches to plan sessions and build connections.' },
+    { Icon: HiOutlineCalendarDays,        title: 'Session Scheduler',  desc: 'Book sessions directly in-app with auto-generated Jitsi video links.' },
+    { Icon: HiOutlineStar,                title: 'Reputation System',  desc: 'Reviews and ratings keep the community high-quality and trustworthy.' },
+    { Icon: HiOutlineVideoCamera,         title: 'Free Video Calls',   desc: 'Integrated Jitsi Meet — 100% free HD video calling, no account needed.' },
+    { Icon: HiOutlineGlobeAlt,            title: 'Global Community',   desc: 'Connect with skill enthusiasts across the world for free exchanges.' },
   ];
 
   const stats = [
-    { value: '10,000+', label: 'Skill Swaps' },
-    { value: '5,000+',  label: 'Members' },
-    { value: '200+',    label: 'Skills Listed' },
-    { value: '4.8★',   label: 'Avg Rating' },
+    {
+      value: liveStats ? (liveStats.swaps >= 1000 ? `${(liveStats.swaps / 1000).toFixed(1)}k+` : liveStats.swaps > 0 ? `${liveStats.swaps}+` : '—') : '…',
+      label: 'Skill Swaps',
+    },
+    {
+      value: liveStats ? (liveStats.members >= 1000 ? `${(liveStats.members / 1000).toFixed(1)}k+` : liveStats.members > 0 ? `${liveStats.members}+` : '—') : '…',
+      label: 'Members',
+    },
+    { value: '200+', label: 'Skills Listed' },
+    {
+      value: liveStats ? (liveStats.avgRating ? `${liveStats.avgRating}★` : '—') : '…',
+      label: 'Avg Rating',
+    },
   ];
 
   return (
@@ -41,8 +65,10 @@ export default function HomePage() {
         borderBottom: '1px solid rgba(99,102,241,0.1)',
       }}>
         <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 1.5rem', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ width: 36, height: 36, background: 'linear-gradient(135deg,#6366f1,#d946ef)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem' }}>⚡</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+            <div style={{ width: 34, height: 34, background: 'linear-gradient(135deg,#6366f1,#d946ef)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
             <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.2rem' }}>
               Skill<span style={{ color: '#818cf8' }}>Swap</span>
             </span>
@@ -67,7 +93,7 @@ export default function HomePage() {
           color: '#818cf8',
           marginBottom: '1.5rem',
         }}>
-          ✨ The barter economy for knowledge
+          The barter economy for knowledge
         </div>
 
         <h1 style={{
@@ -88,7 +114,7 @@ export default function HomePage() {
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/auth/register" className="btn-primary" style={{ textDecoration: 'none', fontSize: '1rem', padding: '0.9rem 2.25rem' }}>
-            <span>🚀 Start Swapping Free</span>
+            <span>Get Started Free</span>
           </Link>
           <Link href="/auth/login" className="btn-secondary" style={{ textDecoration: 'none', fontSize: '1rem', padding: '0.9rem 2.25rem' }}>
             Sign In
@@ -118,7 +144,9 @@ export default function HomePage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
           {features.map(f => (
             <div key={f.title} className="glass-card" style={{ padding: '1.75rem' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '0.875rem' }}>{f.icon}</div>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+                <f.Icon size={20} color="#818cf8" />
+              </div>
               <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, fontSize: '1.05rem', marginBottom: '0.5rem' }}>{f.title}</h3>
               <p style={{ color: '#a0a0c0', fontSize: '0.875rem', lineHeight: 1.6 }}>{f.desc}</p>
             </div>
@@ -133,23 +161,24 @@ export default function HomePage() {
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
           {[
-            { step: '01', title: 'Create Profile', desc: 'List your skills and what you want to learn.' },
-            { step: '02', title: 'Get Matched', desc: 'Our algorithm finds your perfect skill exchange partners.' },
-            { step: '03', title: 'Connect & Chat', desc: 'Send a request, chat, and plan your sessions.' },
-            { step: '04', title: 'Learn & Teach', desc: 'Exchange skills via video call and leave reviews.' },
+            { step: '01', title: 'Create Profile',  desc: 'List your skills and what you want to learn.' },
+            { step: '02', title: 'Get Matched',      desc: 'Our algorithm finds your perfect skill exchange partners.' },
+            { step: '03', title: 'Connect & Chat',   desc: 'Send a request, chat, and plan your sessions.' },
+            { step: '04', title: 'Learn & Teach',    desc: 'Exchange skills via video call and leave reviews.' },
           ].map(step => (
             <div key={step.step} style={{ textAlign: 'center', padding: '1.5rem' }}>
               <div style={{
-                width: 56, height: 56,
-                background: 'linear-gradient(135deg,rgba(99,102,241,0.2),rgba(217,70,239,0.2))',
-                border: '1px solid rgba(99,102,241,0.3)',
+                width: 52, height: 52,
+                background: 'linear-gradient(135deg,rgba(99,102,241,0.15),rgba(217,70,239,0.15))',
+                border: '1px solid rgba(99,102,241,0.25)',
                 borderRadius: '50%',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 1rem',
                 fontFamily: 'Outfit,sans-serif',
                 fontWeight: 800,
                 color: '#818cf8',
-                fontSize: '1rem',
+                fontSize: '0.9rem',
+                letterSpacing: '-0.02em',
               }}>{step.step}</div>
               <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, marginBottom: '0.5rem' }}>{step.title}</h3>
               <p style={{ color: '#a0a0c0', fontSize: '0.85rem', lineHeight: 1.6 }}>{step.desc}</p>
@@ -167,14 +196,14 @@ export default function HomePage() {
           Join thousands of learners and teachers already exchanging skills for free.
         </p>
         <Link href="/auth/register" className="btn-primary" style={{ textDecoration: 'none', fontSize: '1.05rem', padding: '1rem 2.5rem' }}>
-          <span>🎓 Join SkillSwap — It's Free</span>
+          <span>Join SkillSwap — It's Free</span>
         </Link>
       </section>
 
       {/* Footer */}
       <footer style={{ borderTop: '1px solid rgba(99,102,241,0.1)', padding: '2rem 1.5rem', textAlign: 'center', color: '#6b7280', fontSize: '0.85rem' }}>
         <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, color: '#818cf8' }}>SkillSwap</span>
-        {' '}· The barter economy for knowledge · Built with ❤️ and zero ₹
+        {' '}· The barter economy for knowledge · Free forever
       </footer>
     </div>
   );

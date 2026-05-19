@@ -10,6 +10,7 @@ create extension if not exists "uuid-ossp";
 create table if not exists profiles (
   id            uuid references auth.users on delete cascade primary key,
   name          text not null,
+  email         text,
   bio           text default '',
   avatar_url    text,
   location      text default '',
@@ -17,6 +18,7 @@ create table if not exists profiles (
   total_reviews integer default 0,
   is_online     boolean default false,
   banned        boolean default false,
+  is_admin      boolean not null default false,
   joined_at     timestamptz default now()
 );
 
@@ -109,18 +111,35 @@ alter table skills              enable row level security;
 alter table user_skills_offered enable row level security;
 alter table user_skills_wanted  enable row level security;
 
--- profiles: public read, self-write
+-- Helper: admin check (security definer avoids RLS recursion)
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select coalesce(
+    (select is_admin from public.profiles where id = auth.uid()),
+    false
+  );
+$$;
+
+-- profiles: public read, self-write, admins can moderate
 create policy "Profiles viewable by all"   on profiles for select using (true);
 create policy "Users insert own profile"   on profiles for insert with check (auth.uid() = id);
 create policy "Users update own profile"   on profiles for update using (auth.uid() = id);
+create policy "Admins update any profile"  on profiles for update using (public.is_admin());
 
 -- matches
 create policy "Participants view matches"  on matches for select
-  using (auth.uid() = user_a_id or auth.uid() = user_b_id);
+  using (public.is_admin() or auth.uid() = user_a_id or auth.uid() = user_b_id);
 create policy "Auth users create matches"  on matches for insert
   with check (auth.uid() = user_a_id);
 create policy "Participants update match"  on matches for update
   using (auth.uid() = user_a_id or auth.uid() = user_b_id);
+create policy "Admins update any match"    on matches for update
+  using (public.is_admin());
 
 -- messages
 create policy "Participants read messages" on messages for select
@@ -143,7 +162,7 @@ create policy "Reviewer inserts review"   on reviews for insert with check (auth
 -- notifications
 create policy "Own notifications read"    on notifications for select using (auth.uid() = user_id);
 create policy "Own notifications update"  on notifications for update using (auth.uid() = user_id);
-create policy "System inserts notifs"     on notifications for insert with check (true);
+create policy "Authenticated insert notifications" on notifications for insert with check (auth.uid() is not null);
 
 -- skills (read-only for everyone, no user can insert/update)
 create policy "Skills viewable by all" on skills for select using (true);
@@ -178,15 +197,16 @@ on conflict (name) do nothing;
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, name, avatar_url, joined_at, is_online)
+  insert into public.profiles (id, name, email, avatar_url, joined_at, is_online)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
+    new.email,
     'https://api.dicebear.com/8.x/avataaars/svg?seed=' || new.id,
     now(),
     true
   )
-  on conflict (id) do nothing;
+  on conflict (id) do update set email = excluded.email;
   return new;
 end;
 $$ language plpgsql security definer;

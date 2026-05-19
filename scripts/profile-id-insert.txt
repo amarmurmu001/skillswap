@@ -1,0 +1,47 @@
+  const [profile, setProfile] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [offeredSkills, setOfferedSkills] = useState([]);
+  const [wantedSkills, setWantedSkills] = useState([]);
+  const [existingMatch, setExistingMatch] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    async function load() {
+      setLoading(true);
+      try {
+        const p = await getUserById(id);
+        if (!p) {
+          setProfile(null);
+          return;
+        }
+        const [rev, offered, wanted, matches] = await Promise.all([
+          getReviewsForUser(p.id),
+          getSkillsByIds(p.skillsOffered || []),
+          getSkillsByIds(p.skillsWanted || []),
+          currentUser ? getMatchesForUser(currentUser.id) : Promise.resolve([]),
+        ]);
+        setProfile(p);
+        setReviews(rev);
+        setOfferedSkills(offered);
+        setWantedSkills(wanted);
+        setExistingMatch(
+          matches.find(m => m.userAId === p.id || m.userBId === p.id) || null
+        );
+      } catch {
+        toast.error('Failed to load profile');
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [id, currentUser]);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '5rem' }}>
+        <div className="spinner" />
+      </div>
+    );
+  }

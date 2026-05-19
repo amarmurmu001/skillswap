@@ -4,15 +4,16 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import SkillTag from './SkillTag';
 import StarRating from './StarRating';
-import { getSkillsByIds } from '@/lib/data';
+import { useAppData } from '@/context/AppDataContext';
 import { matchPercent } from '@/lib/matching';
 
 export default function MatchCard({ match, currentUserId, onSendRequest, onAccept, onReject, existingMatchStatus }) {
   const router = useRouter();
+  const { resolveSkills } = useAppData();
   const { user, score, isPerfect, iCanTeachThem, theyCanTeachMe } = match;
 
-  const offeredSkills = getSkillsByIds(iCanTeachThem);
-  const wantedSkills  = getSkillsByIds(theyCanTeachMe);
+  const offeredSkills = resolveSkills(iCanTeachThem);
+  const wantedSkills  = resolveSkills(theyCanTeachMe);
   const pct = matchPercent(score);
 
   const ringColor  = isPerfect ? '#6366f1' : '#d946ef';
@@ -66,11 +67,11 @@ export default function MatchCard({ match, currentUserId, onSendRequest, onAccep
                 borderRadius: 9999,
                 textTransform: 'uppercase',
                 letterSpacing: '0.08em',
-              }}>⚡ Perfect Match</span>
+              }}>Perfect Match</span>
             )}
           </div>
           <div style={{ color: '#a0a0c0', fontSize: '0.8rem', marginTop: 2 }}>
-            📍 {user.location || 'Worldwide'}
+            {user.location || 'Worldwide'}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: 4 }}>
             <StarRating value={Math.round(user.rating)} readonly size="sm" />
@@ -144,7 +145,7 @@ export default function MatchCard({ match, currentUserId, onSendRequest, onAccep
             className="btn-primary"
             style={{ flex: 1, fontSize: '0.875rem', padding: '0.625rem 1rem' }}
           >
-            <span>💬 Open Chat</span>
+            <span>Open Chat</span>
           </button>
         ) : existingMatchStatus === 'pending' ? (
           <>
@@ -170,7 +171,7 @@ export default function MatchCard({ match, currentUserId, onSendRequest, onAccep
               className="btn-primary"
               style={{ flex: 1, fontSize: '0.875rem', padding: '0.625rem 1rem' }}
             >
-              <span>✨ Send Request</span>
+              <span>Send Request</span>
             </button>
             <Link
               href={`/profile/${user.id}`}

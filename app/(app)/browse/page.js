@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, memo, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { getSkillsByIds, createMatchRequest, addNotification } from '@/lib/data';
-import { getBrowseUsers } from '@/lib/matching';
+import { createMatchRequest, addNotification } from '@/lib/data';
+import { getBrowseUsersFromList } from '@/lib/matching';
+import { useAppData } from '@/context/AppDataContext';
 import SkillTag from '@/components/SkillTag';
 import StarRating from '@/components/StarRating';
 import Link from 'next/link';
@@ -11,38 +12,81 @@ import toast from 'react-hot-toast';
 
 const CATEGORIES = ['All', 'Tech', 'Music', 'Language', 'Art', 'Fitness', 'Lifestyle', 'Games', 'Professional'];
 
+const PAGE_SIZE = 20;
+
 export default function BrowsePage() {
   const { user } = useAuth();
-  const [allUsers, setAllUsers] = useState([]);
-  const [loading, setLoading]  = useState(true);
+  const { users, skills, skillsById, ready, resolveSkills } = useAppData();
+  const [loading, setLoading] = useState(true);
   const [search, setSearch]    = useState('');
   const [category, setCategory] = useState('All');
   const [sortBy, setSortBy]    = useState('match');
+  const [page, setPage]        = useState(1);
 
   useEffect(() => {
-    if (!user) return;
-    getBrowseUsers(user).then(results => {
-      setAllUsers(results);
-      setLoading(false);
-    });
-  }, [user]);
+    setLoading(!ready);
+  }, [ready]);
+
+  // Pre-ranked list (score already computed)
+  const allUsers = useMemo(
+    () => (user && ready ? getBrowseUsersFromList(user, users) : []),
+    [user, ready, users]
+  );
+
+  // Build a Set of skill IDs that belong to the selected category — used to
+  // filter users without re-running resolveSkills on every card.
+  const categorySkillIds = useMemo(() => {
+    if (category === 'All') return null; // null = no filter
+    const ids = new Set();
+    for (const s of skills) {
+      if (s.category === category) ids.add(s.id);
+    }
+    return ids;
+  }, [category, skills]);
 
   const filtered = useMemo(() => {
     let list = allUsers.filter(({ user: u }) => {
+      // Text search
       const q = search.toLowerCase();
       if (q && !u.name?.toLowerCase().includes(q) && !u.bio?.toLowerCase().includes(q) && !u.location?.toLowerCase().includes(q)) return false;
+
+      // Category filter — keep user if they offer OR want at least one skill in the category
+      if (categorySkillIds) {
+        const hasCategory =
+          (u.skillsOffered || []).some(id => categorySkillIds.has(id)) ||
+          (u.skillsWanted  || []).some(id => categorySkillIds.has(id));
+        if (!hasCategory) return false;
+      }
+
       return true;
     });
+
     if (sortBy === 'rating') list = [...list].sort((a, b) => b.user.rating - a.user.rating);
     if (sortBy === 'name')   list = [...list].sort((a, b) => a.user.name.localeCompare(b.user.name));
-    return list;
-  }, [allUsers, search, sortBy]);
 
-  async function handleConnect(otherId, score, isPerfect) {
-    await createMatchRequest(user.id, otherId, score, isPerfect);
-    await addNotification({ userId: otherId, type: 'match_request', title: 'New Match Request', message: `${user.name} wants to swap skills with you!`, link: '/matches' });
-    toast.success('Connection request sent! ✨');
-  }
+    // Pre-resolve skills here (once per filter run) instead of inside each card render
+    return list.map(item => ({
+      ...item,
+      offeredSkills: resolveSkills((item.user.skillsOffered || []).slice(0, 3)),
+      wantedSkills:  resolveSkills((item.user.skillsWanted  || []).slice(0, 3)),
+    }));
+  }, [allUsers, search, sortBy, categorySkillIds, resolveSkills]);
+
+  const handleConnect = useCallback(async (otherId, score, isPerfect) => {
+    try {
+      await createMatchRequest(user.id, otherId, score, isPerfect);
+      await addNotification({ userId: otherId, type: 'match_request', title: 'New Match Request', message: `${user.name} wants to swap skills with you!`, link: '/matches' });
+      toast.success('Connection request sent!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to send request');
+    }
+  }, [user]);
+
+  // Reset page when filters change
+  useEffect(() => { setPage(1); }, [search, category, sortBy]);
+
+  const visible = filtered.slice(0, page * PAGE_SIZE);
+  const hasMore = visible.length < filtered.length;
 
   if (!user) return null;
 
@@ -54,7 +98,7 @@ export default function BrowsePage() {
       </div>
 
       <div style={{ display: 'flex', gap: '0.875rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <input type="text" className="input-field" placeholder="🔍 Search by name, bio, location..." value={search} onChange={e => setSearch(e.target.value)} style={{ flex: '1 1 220px', minWidth: 0 }} />
+        <input type="text" className="input-field" placeholder="Search by name, bio, location..." value={search} onChange={e => setSearch(e.target.value)} style={{ flex: '1 1 220px', minWidth: 0 }} />
         <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-field" style={{ flex: '0 0 auto', width: 'auto', cursor: 'pointer' }}>
           <option value="match">Sort: Best Match</option>
           <option value="rating">Sort: Rating</option>
@@ -73,37 +117,52 @@ export default function BrowsePage() {
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '5rem' }}><div className="spinner" /></div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '1.25rem' }}>
-          {filtered.map(({ user: other, score, isPerfect }) => {
-            const offeredSkills = (other.skillsOffered || []).slice(0, 3);
-            const wantedSkills  = (other.skillsWanted  || []).slice(0, 3);
-            return (
-              <BrowseCard key={other.id} other={other} score={score} isPerfect={isPerfect}
-                offeredIds={offeredSkills} wantedIds={wantedSkills}
+        <>
+          <p style={{ color: '#6b7280', fontSize: '0.8rem', marginBottom: '1rem' }}>
+            {filtered.length} member{filtered.length !== 1 ? 's' : ''} found
+            {filtered.length > visible.length && ` — showing ${visible.length}`}
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '1.25rem' }}>
+            {visible.map(({ user: other, score, isPerfect, offeredSkills, wantedSkills }) => (
+              <BrowseCard
+                key={other.id}
+                other={other}
+                score={score}
+                isPerfect={isPerfect}
+                offeredSkills={offeredSkills}
+                wantedSkills={wantedSkills}
                 onConnect={() => handleConnect(other.id, score, isPerfect)}
               />
-            );
-          })}
-          {filtered.length === 0 && (
-            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '5rem 2rem', color: '#a0a0c0' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🔍</div>
-              <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, marginBottom: '0.5rem' }}>No users found</h3>
+            ))}
+            {filtered.length === 0 && (
+              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '5rem 2rem', color: '#a0a0c0' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+                <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, marginBottom: '0.5rem' }}>No users found</h3>
+              </div>
+            )}
+          </div>
+          {hasMore && (
+            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              <button
+                onClick={() => setPage(p => p + 1)}
+                className="btn-secondary"
+                style={{ fontSize: '0.875rem', minWidth: 160 }}
+              >
+                Load More ({filtered.length - visible.length} remaining)
+              </button>
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
 }
 
-function BrowseCard({ other, isPerfect, offeredIds, wantedIds, onConnect }) {
-  const [offeredSkills, setOfferedSkills] = useState([]);
-  const [wantedSkills,  setWantedSkills]  = useState([]);
-  useEffect(() => {
-    if (offeredIds.length) getSkillsByIds(offeredIds).then(setOfferedSkills);
-    if (wantedIds.length)  getSkillsByIds(wantedIds).then(setWantedSkills);
-  }, [offeredIds, wantedIds]);
-
+// memo prevents re-renders when parent re-renders but this card's props haven't changed.
+// Skills are now passed in pre-resolved (no resolveSkills call inside the card).
+const BrowseCard = memo(function BrowseCard({ other, isPerfect, offeredSkills, wantedSkills, onConnect }) {
   return (
     <div className="glass-card" style={{ padding: '1.5rem' }}>
       <div style={{ display: 'flex', gap: '0.875rem', alignItems: 'center', marginBottom: '1rem' }}>
@@ -114,9 +173,9 @@ function BrowseCard({ other, isPerfect, offeredIds, wantedIds, onConnect }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700, fontSize: '0.95rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {other.name}
-            {isPerfect && <span style={{ marginLeft: 6, fontSize: '0.65rem', color: '#818cf8', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 9999, padding: '0 5px' }}>⚡ Match</span>}
+            {isPerfect && <span style={{ marginLeft: 6, fontSize: '0.65rem', color: '#818cf8', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)', borderRadius: 9999, padding: '0 5px' }}>Perfect</span>}
           </div>
-          <div style={{ color: '#a0a0c0', fontSize: '0.78rem' }}>📍 {other.location || 'Worldwide'}</div>
+          <div style={{ color: '#a0a0c0', fontSize: '0.78rem' }}>{other.location || 'Worldwide'}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginTop: 2 }}>
             <StarRating value={Math.round(other.rating || 0)} readonly size="sm" />
             <span style={{ fontSize: '0.72rem', color: '#a0a0c0' }}>{(other.rating || 0).toFixed(1)}</span>
@@ -142,4 +201,4 @@ function BrowseCard({ other, isPerfect, offeredIds, wantedIds, onConnect }) {
       </div>
     </div>
   );
-}
+});

@@ -125,8 +125,8 @@ function findMatches(currentUser, allUsers) {
 | Layer | Tool | Why |
 |-------|------|-----|
 | Frontend | Next.js 14 + Tailwind CSS | App Router, RSC, great DX |
-| State | React Context + localStorage | No backend needed for demo |
-| Real-time | localStorage events (→ Socket.io in prod) | Cross-tab real-time simulation |
+| Backend | Supabase (Auth + Postgres + RLS) | Production-ready BaaS |
+| Real-time | Supabase Realtime on `messages` | Live chat without a custom server |
 | Video | Jitsi Meet API | 100% free, no account needed |
 | Hosting | Vercel | Free tier |
 
@@ -135,18 +135,22 @@ function findMatches(currentUser, allUsers) {
 ## ⚡ Quick Start
 
 ```bash
-# 1. Install dependencies
-npm install
+# 1. Copy env and add your Supabase keys
+cp .env.local.example .env.local
 
-# 2. Run development server
+# 2. Run supabase/schema.sql in Supabase SQL Editor
+#    If upgrading an existing DB, also run supabase/migrations/001_production_upgrade.sql
+
+# 3. Enable Realtime for the `messages` table (Supabase Dashboard → Replication)
+
+# 4. Promote an admin account:
+#    update profiles set is_admin = true where email = 'you@example.com';
+
+# 5. Install and run
+npm install
 npm run dev
 
-# 3. Open in browser
-http://localhost:3000
-
-# Demo credentials (auto-filled on login page)
-Email:    arjun@example.com
-Password: password123
+# Open http://localhost:3000 and register a new account
 ```
 
 ---

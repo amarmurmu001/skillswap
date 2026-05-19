@@ -1,0 +1,10 @@
+  if (!profile) {
+    return (
+      <div style={{ textAlign: 'center', padding: '5rem 2rem', color: '#a0a0c0' }}>
+        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>😕</div>
+        <h2 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, marginBottom: '0.5rem' }}>User not found</h2>
+        <Link href="/browse" style={{ color: '#818cf8', textDecoration: 'none' }}>← Back to Browse</Link>
+      </div>
+    );
+  }
+

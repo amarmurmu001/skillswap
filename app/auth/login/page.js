@@ -47,28 +47,7 @@ export default function LoginPage() {
           <h1 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.75rem', marginBottom: '0.5rem', textAlign: 'center' }}>Welcome back</h1>
           <p style={{ color: '#a0a0c0', fontSize: '0.9rem', textAlign: 'center', marginBottom: '2rem' }}>Sign in to your SkillSwap account</p>
 
-          {/* Demo shortcut */}
-          <button
-            onClick={demoLogin}
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              background: 'rgba(99,102,241,0.08)',
-              border: '1px dashed rgba(99,102,241,0.3)',
-              borderRadius: '0.875rem',
-              color: '#818cf8',
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              marginBottom: '1.5rem',
-              fontWeight: 500,
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.15)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(99,102,241,0.08)'}
-          >
-            🎭 Use demo credentials
-          </button>
-
+          
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Email</label>
@@ -102,6 +81,11 @@ export default function LoginPage() {
                   {showPass ? '🙈' : '👁️'}
                 </button>
               </div>
+            </div>
+            <div style={{ textAlign: 'right', marginTop: '-0.5rem' }}>
+              <Link href="/auth/forgot-password" style={{ fontSize: '0.8rem', color: '#818cf8', textDecoration: 'none', fontWeight: 500 }}>
+                Forgot password?
+              </Link>
             </div>
 
             <button
