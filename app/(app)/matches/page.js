@@ -86,11 +86,11 @@ export default function MatchesPage() {
             <a href="/profile" className="btn-primary" style={{ textDecoration: 'none' }}><span>Add Skills</span></a>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.25rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
             {suggestions.map(suggestion => {
               const existing = existingMatchFor(suggestion.user.id);
               return (
-                <MatchCard key={suggestion.user.id} match={suggestion} currentUserId={user.id} existingMatchStatus={existing?.status}
+                <MatchCard key={suggestion.user.id} match={suggestion} currentUserId={user.id} existingMatchStatus={existing?.status} existingMatchSenderId={existing?.userAId}
                   onSendRequest={handleSendRequest}
                   onAccept={() => existing && handleAccept(existing.id)}
                   onReject={() => existing && handleReject(existing.id)}
@@ -135,11 +135,11 @@ function MatchListByStatus({ matches, userId, onAccept, onReject }) {
   );
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.25rem' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.25rem' }}>
       {enriched.map(({ match, other }) => (
         <MatchCard key={match.id}
           match={{ user: other, score: match.score || 0, isPerfect: match.isPerfect || false, iCanTeachThem: [], theyCanTeachMe: [] }}
-          currentUserId={userId} existingMatchStatus={match.status}
+          currentUserId={userId} existingMatchStatus={match.status} existingMatchSenderId={match.userAId}
           onAccept={() => onAccept(match.id)} onReject={() => onReject(match.id)}
         />
       ))}

@@ -51,7 +51,7 @@ export default function OnboardingModal({ onComplete }) {
 
   const STEPS = [
     { title: 'What can you teach?', subtitle: 'Select all skills you can share with others.', key: 'skillsOffered', color: '#6366f1' },
-    { title: 'What do you want to learn?', subtitle: 'Select skills you'd like to learn from others.', key: 'skillsWanted', color: '#d946ef' },
+    { title: 'What do you want to learn?', subtitle: "Select skills you'd like to learn from others.", key: 'skillsWanted', color: '#d946ef' },
     { title: 'About you', subtitle: 'A short bio and location help others find and trust you.', key: null, color: '#818cf8' },
   ];
 

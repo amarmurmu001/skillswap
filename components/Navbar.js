@@ -116,7 +116,7 @@ export default function Navbar() {
         </Link>
 
         {/* Nav links */}
-        <div style={{ display: 'flex', gap: '0.125rem', flex: 1 }}>
+        <div className="desktop-nav-links" style={{ display: 'flex', gap: '0.125rem', flex: 1 }}>
           {NAV_ITEMS.map(item => {
             const active = pathname.startsWith(item.href);
             const Icon = item.icon;

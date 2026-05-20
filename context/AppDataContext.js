@@ -44,12 +44,11 @@ export function AppDataProvider({ children }) {
     }
 
     // No cache — first load. Fetch and block until done.
-    // Skills are already loading from the eager effect above, so we only
-    // need to wait for the users query here.
     setReady(false);
     try {
-      const userList = await getUsers();
+      const [userList, skillList] = await Promise.all([getUsers(), getSkills()]);
       setUsers(userList);
+      setSkills(skillList);
     } finally {
       setReady(true);
     }

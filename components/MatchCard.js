@@ -7,7 +7,7 @@ import StarRating from './StarRating';
 import { useAppData } from '@/context/AppDataContext';
 import { matchPercent } from '@/lib/matching';
 
-export default function MatchCard({ match, currentUserId, onSendRequest, onAccept, onReject, existingMatchStatus }) {
+export default function MatchCard({ match, currentUserId, onSendRequest, onAccept, onReject, existingMatchStatus, existingMatchSenderId }) {
   const router = useRouter();
   const { resolveSkills } = useAppData();
   const { user, score, isPerfect, iCanTeachThem, theyCanTeachMe } = match;
@@ -148,22 +148,32 @@ export default function MatchCard({ match, currentUserId, onSendRequest, onAccep
             <span>Open Chat</span>
           </button>
         ) : existingMatchStatus === 'pending' ? (
-          <>
+          existingMatchSenderId === currentUserId ? (
             <button
-              onClick={() => onAccept && onAccept()}
-              className="btn-primary"
-              style={{ flex: 1, fontSize: '0.875rem', padding: '0.625rem 1rem' }}
-            >
-              <span>✓ Accept</span>
-            </button>
-            <button
-              onClick={() => onReject && onReject()}
+              disabled
               className="btn-secondary"
-              style={{ flex: 1, fontSize: '0.875rem', padding: '0.625rem 1rem' }}
+              style={{ flex: 1, fontSize: '0.875rem', padding: '0.625rem 1rem', cursor: 'not-allowed', opacity: 0.7 }}
             >
-              Decline
+              Pending
             </button>
-          </>
+          ) : (
+            <>
+              <button
+                onClick={() => onAccept && onAccept()}
+                className="btn-primary"
+                style={{ flex: 1, fontSize: '0.875rem', padding: '0.625rem 1rem' }}
+              >
+                <span>✓ Accept</span>
+              </button>
+              <button
+                onClick={() => onReject && onReject()}
+                className="btn-secondary"
+                style={{ flex: 1, fontSize: '0.875rem', padding: '0.625rem 1rem' }}
+              >
+                Decline
+              </button>
+            </>
+          )
         ) : (
           <>
             <button

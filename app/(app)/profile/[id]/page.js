@@ -127,12 +127,12 @@ export default function UserProfilePage() {
               <h1 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.5rem' }}>{profile.name}</h1>
               {isPerfect && (
                 <span style={{ fontSize: '0.72rem', color: '#818cf8', background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: 9999, padding: '0.2rem 0.625rem', fontWeight: 700 }}>
-                  ⚡ Perfect Match
+                  Perfect Match
                 </span>
               )}
             </div>
             <div style={{ color: '#a0a0c0', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
-              {profile.location ? `📍 ${profile.location}` : '🌍 Worldwide'} · Joined {formatDate(profile.joinedAt)}
+              {profile.location ? `${profile.location}` : 'Worldwide'} · Joined {formatDate(profile.joinedAt)}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.875rem' }}>
               <StarRating value={Math.round(profile.rating)} readonly size="sm" />
@@ -146,17 +146,17 @@ export default function UserProfilePage() {
               {existingMatch ? (
                 <div>
                   <span className={`status-badge status-${existingMatch.status}`}>
-                    {existingMatch.status === 'active' ? '✨ Connected' : existingMatch.status === 'pending' ? '⏳ Pending' : existingMatch.status}
+                    {existingMatch.status === 'active' ? 'Connected' : existingMatch.status === 'pending' ? 'Pending' : existingMatch.status}
                   </span>
                   {existingMatch.status === 'active' && (
                     <Link href="/chat" className="btn-primary" style={{ textDecoration: 'none', fontSize: '0.875rem', display: 'block', marginTop: '0.5rem', textAlign: 'center' }}>
-                      <span>💬 Chat</span>
+                      <span>Chat</span>
                     </Link>
                   )}
                 </div>
               ) : (
                 <button onClick={handleConnect} disabled={connecting} className="btn-primary" style={{ fontSize: '0.875rem' }}>
-                  <span>{connecting ? 'Sending…' : '✨ Connect'}</span>
+                  <span>{connecting ? 'Sending…' : 'Connect'}</span>
                 </button>
               )}
             </div>
@@ -164,13 +164,13 @@ export default function UserProfilePage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
         {/* Skills */}
         <div className="glass-card" style={{ padding: '1.5rem' }}>
           <h2 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, fontSize: '1rem', marginBottom: '1.25rem' }}>Skills</h2>
           <div style={{ marginBottom: '1.25rem' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.625rem' }}>
-              🎓 Teaches ({offeredSkills.length})
+              Teaches ({offeredSkills.length})
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
               {offeredSkills.map(s => {
@@ -181,7 +181,7 @@ export default function UserProfilePage() {
           </div>
           <div>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#d946ef', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.625rem' }}>
-              🌱 Learning ({wantedSkills.length})
+              Learning ({wantedSkills.length})
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
               {wantedSkills.map(s => <SkillTag key={s.id} skill={s} variant="want" />)}

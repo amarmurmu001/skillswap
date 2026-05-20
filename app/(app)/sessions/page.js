@@ -33,7 +33,7 @@ export default function SessionsPage() {
     ];
     const users = otherIds.length ? await getUsersByIds(otherIds) : {};
     setSessions(s);
-    setMatches(active);
+    setMatches(m);
     setUsersById(users);
     setLoading(false);
   }, [user?.id]);
@@ -43,7 +43,14 @@ export default function SessionsPage() {
   async function handleCreate(e) {
     e.preventDefault();
     if (!form.matchId) { toast.error('Please select a match'); return; }
-    await createSession({ ...form, hostId: user.id });
+    let isoDate;
+    try {
+      isoDate = new Date(form.scheduledAt).toISOString();
+    } catch {
+      toast.error('Invalid date and time selected');
+      return;
+    }
+    await createSession({ ...form, scheduledAt: isoDate, hostId: user.id });
     toast.success('Session scheduled!');
     setShowForm(false);
     setForm({ matchId: '', topic: '', scheduledAt: '', duration: 60 });
@@ -114,7 +121,7 @@ export default function SessionsPage() {
               <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.4rem' }}>With (Match)</label>
               <select className="input-field" value={form.matchId} onChange={e => setForm(p => ({ ...p, matchId: e.target.value }))} required style={{ cursor: 'pointer' }}>
                 <option value="">Select match...</option>
-                {matches.map(m => <MatchOption key={m.id} match={m} userId={user.id} usersById={usersById} />)}
+                {matches.filter(m => m.status === 'active').map(m => <MatchOption key={m.id} match={m} userId={user.id} usersById={usersById} />)}
               </select>
             </div>
             <div>
@@ -123,7 +130,7 @@ export default function SessionsPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.4rem' }}>Date & Time</label>
-              <input type="datetime-local" className="input-field" value={form.scheduledAt} onChange={e => setForm(p => ({ ...p, scheduledAt: new Date(e.target.value).toISOString() }))} required style={{ colorScheme: 'dark' }} />
+              <input type="datetime-local" className="input-field" value={form.scheduledAt} onChange={e => setForm(p => ({ ...p, scheduledAt: e.target.value }))} required style={{ colorScheme: 'dark' }} />
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.4rem' }}>Duration</label>
@@ -154,8 +161,10 @@ export default function SessionsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {byStatus(tab).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '5rem 2rem', color: '#a0a0c0' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📅</div>
-              <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, marginBottom: '0.5rem' }}>No {tab} sessions</h3>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <h3 style={{ fontFamily: 'var(--font-outfit,Outfit),sans-serif', fontWeight: 700, marginBottom: '0.5rem' }}>No {tab} sessions</h3>
               {tab === 'upcoming' && <button onClick={() => setShowForm(true)} className="btn-primary" style={{ marginTop: '1rem', fontSize: '0.875rem' }}><span>+ Schedule a Session</span></button>}
             </div>
           ) : byStatus(tab).map(session => (

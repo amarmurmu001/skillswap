@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, memo, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { createMatchRequest, addNotification } from '@/lib/data';
+import { createMatchRequest, addNotification, getMatchesForUser } from '@/lib/data';
 import { getBrowseUsersFromList } from '@/lib/matching';
 import { useAppData } from '@/context/AppDataContext';
 import SkillTag from '@/components/SkillTag';
@@ -18,14 +18,26 @@ export default function BrowsePage() {
   const { user } = useAuth();
   const { users, skills, skillsById, ready, resolveSkills } = useAppData();
   const [loading, setLoading] = useState(true);
+  const [matches, setMatches] = useState([]);
   const [search, setSearch]    = useState('');
   const [category, setCategory] = useState('All');
   const [sortBy, setSortBy]    = useState('match');
   const [page, setPage]        = useState(1);
 
   useEffect(() => {
-    setLoading(!ready);
-  }, [ready]);
+    if (!user || !ready) return;
+    async function loadMatches() {
+      try {
+        const m = await getMatchesForUser(user.id);
+        setMatches(m);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadMatches();
+  }, [user, ready]);
 
   // Pre-ranked list (score already computed)
   const allUsers = useMemo(
@@ -77,6 +89,8 @@ export default function BrowsePage() {
       await createMatchRequest(user.id, otherId, score, isPerfect);
       await addNotification({ userId: otherId, type: 'match_request', title: 'New Match Request', message: `${user.name} wants to swap skills with you!`, link: '/matches' });
       toast.success('Connection request sent!');
+      const m = await getMatchesForUser(user.id);
+      setMatches(m);
     } catch (err) {
       toast.error(err.message || 'Failed to send request');
     }
@@ -123,17 +137,21 @@ export default function BrowsePage() {
             {filtered.length > visible.length && ` — showing ${visible.length}`}
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '1.25rem' }}>
-            {visible.map(({ user: other, score, isPerfect, offeredSkills, wantedSkills }) => (
-              <BrowseCard
-                key={other.id}
-                other={other}
-                score={score}
-                isPerfect={isPerfect}
-                offeredSkills={offeredSkills}
-                wantedSkills={wantedSkills}
-                onConnect={() => handleConnect(other.id, score, isPerfect)}
-              />
-            ))}
+            {visible.map(({ user: other, score, isPerfect, offeredSkills, wantedSkills }) => {
+              const existing = matches.find(m => m.userAId === other.id || m.userBId === other.id);
+              return (
+                <BrowseCard
+                  key={other.id}
+                  other={other}
+                  score={score}
+                  isPerfect={isPerfect}
+                  offeredSkills={offeredSkills}
+                  wantedSkills={wantedSkills}
+                  existingMatchStatus={existing?.status}
+                  onConnect={() => handleConnect(other.id, score, isPerfect)}
+                />
+              );
+            })}
             {filtered.length === 0 && (
               <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '5rem 2rem', color: '#a0a0c0' }}>
                 <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
@@ -162,7 +180,7 @@ export default function BrowsePage() {
 
 // memo prevents re-renders when parent re-renders but this card's props haven't changed.
 // Skills are now passed in pre-resolved (no resolveSkills call inside the card).
-const BrowseCard = memo(function BrowseCard({ other, isPerfect, offeredSkills, wantedSkills, onConnect }) {
+const BrowseCard = memo(function BrowseCard({ other, isPerfect, offeredSkills, wantedSkills, onConnect, existingMatchStatus }) {
   return (
     <div className="glass-card" style={{ padding: '1.5rem' }}>
       <div style={{ display: 'flex', gap: '0.875rem', alignItems: 'center', marginBottom: '1rem' }}>
@@ -196,7 +214,19 @@ const BrowseCard = memo(function BrowseCard({ other, isPerfect, offeredSkills, w
         </div>
       )}
       <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <button onClick={onConnect} className="btn-primary" style={{ flex: 1, fontSize: '0.8rem', padding: '0.5rem 0.875rem' }}><span>Connect</span></button>
+        {existingMatchStatus === 'active' ? (
+          <Link href="/chat" className="btn-primary" style={{ flex: 1, fontSize: '0.8rem', padding: '0.5rem 0.875rem', textAlign: 'center', textDecoration: 'none', display: 'block' }}>
+            <span>Chat</span>
+          </Link>
+        ) : existingMatchStatus === 'pending' ? (
+          <button disabled className="btn-secondary" style={{ flex: 1, fontSize: '0.8rem', padding: '0.5rem 0.875rem', cursor: 'not-allowed', opacity: 0.7 }}>
+            Pending
+          </button>
+        ) : (
+          <button onClick={onConnect} className="btn-primary" style={{ flex: 1, fontSize: '0.8rem', padding: '0.5rem 0.875rem' }}>
+            <span>Connect</span>
+          </button>
+        )}
         <Link href={`/profile/${other.id}`} className="btn-secondary" style={{ flex: 1, fontSize: '0.8rem', padding: '0.5rem 0.875rem', textAlign: 'center', textDecoration: 'none', display: 'block' }}>Profile</Link>
       </div>
     </div>

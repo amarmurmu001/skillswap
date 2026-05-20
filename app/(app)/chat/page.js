@@ -43,12 +43,12 @@ export default function ChatPage() {
     </div>
   );
 
-  const activeConvo = conversations.find(c => c.match.id === activeMatchId) || conversations[0];
+  const activeConvo = conversations.find(c => c.match.id === activeMatchId);
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '1.5rem', height: 'calc(100vh - 88px)', display: 'flex', gap: '1.25rem' }}>
+    <div className="chat-container">
       {/* Sidebar */}
-      <div style={{ width: 300, flexShrink: 0, background: 'rgba(17,17,24,0.9)', borderRadius: '1.25rem', border: '1px solid rgba(99,102,241,0.12)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className={`chat-sidebar ${activeMatchId ? 'hidden-mobile' : ''}`}>
         <div style={{ padding: '1.25rem 1.25rem 0.875rem', borderBottom: '1px solid rgba(99,102,241,0.1)' }}>
           <h2 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, fontSize: '1rem' }}>
             Messages <span style={{ marginLeft: 8, background: 'rgba(99,102,241,0.15)', color: '#818cf8', borderRadius: 9999, padding: '0 8px', fontSize: '0.72rem' }}>{conversations.length}</span>
@@ -56,7 +56,7 @@ export default function ChatPage() {
         </div>
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {conversations.map(({ match, other, lastMsg }) => {
-            const isActive = (activeMatchId || conversations[0]?.match.id) === match.id;
+            const isActive = activeMatchId === match.id;
             return (
               <button key={match.id} onClick={() => setActiveMatchId(match.id)} style={{ width: '100%', padding: '1rem 1.25rem', background: isActive ? 'rgba(99,102,241,0.1)' : 'transparent', border: 'none', borderLeft: isActive ? '2px solid #6366f1' : '2px solid transparent', cursor: 'pointer', textAlign: 'left', display: 'flex', gap: '0.75rem', alignItems: 'center', transition: 'all 0.2s' }}>
                 <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -75,26 +75,52 @@ export default function ChatPage() {
       </div>
 
       {/* Chat area */}
-      {activeConvo && (
-        <div style={{ flex: 1, background: 'rgba(17,17,24,0.9)', borderRadius: '1.25rem', border: '1px solid rgba(99,102,241,0.12)', display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-          <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-            <div style={{ position: 'relative' }}>
-              <img src={activeConvo.other?.avatar} alt="" style={{ width: 44, height: 44, borderRadius: '50%', background: '#1a1a27' }} />
-              {activeConvo.other?.isOnline && <div style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, background: '#4ade80', borderRadius: '50%', border: '2px solid #111118' }} />}
+      {activeConvo ? (
+        <div className={`chat-main-area ${!activeMatchId ? 'hidden-mobile' : ''}`}>
+          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {/* Back button on mobile */}
+            <button className="mobile-back-btn" onClick={() => setActiveMatchId(null)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"/>
+                <polyline points="12 19 5 12 12 5"/>
+              </svg>
+            </button>
+
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <img src={activeConvo.other?.avatar} alt="" style={{ width: 40, height: 40, borderRadius: '50%', background: '#1a1a27' }} />
+              {activeConvo.other?.isOnline && <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, background: '#4ade80', borderRadius: '50%', border: '2px solid #111118' }} />}
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: '0.975rem' }}>{activeConvo.other?.name}</div>
-              <div style={{ color: activeConvo.other?.isOnline ? '#4ade80' : '#6b7280', fontSize: '0.78rem' }}>
-                <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: activeConvo.other?.isOnline ? '#4ade80' : '#6b7280', marginRight: 5, verticalAlign: 'middle' }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, fontSize: '0.92rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeConvo.other?.name}</div>
+              <div style={{ color: activeConvo.other?.isOnline ? '#4ade80' : '#6b7280', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: activeConvo.other?.isOnline ? '#4ade80' : '#6b7280', marginRight: 4, verticalAlign: 'middle' }} />
                 {activeConvo.other?.isOnline ? 'Online' : 'Offline'}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <a href={`https://meet.jit.si/skillswap-${activeConvo.match.id}`} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem', textDecoration: 'none' }}><span>Video Call</span></a>
-              <a href="/sessions" className="btn-secondary" style={{ fontSize: '0.8rem', padding: '0.5rem 0.875rem', textDecoration: 'none' }}>Schedule</a>
+            <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
+              <a href={`https://meet.jit.si/skillswap-${activeConvo.match.id}`} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize: '0.75rem', padding: '0.45rem 0.75rem', textDecoration: 'none' }}>
+                <span>Call</span>
+              </a>
+              <a href="/sessions" className="btn-secondary" style={{ fontSize: '0.75rem', padding: '0.45rem 0.75rem', textDecoration: 'none' }}>
+                Schedule
+              </a>
             </div>
           </div>
-          <ChatBox matchId={activeConvo.match.id} currentUserId={user.id} otherUser={activeConvo.other} />
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <ChatBox matchId={activeConvo.match.id} currentUserId={user.id} otherUser={activeConvo.other} />
+          </div>
+        </div>
+      ) : (
+        <div className="chat-main-area hidden-mobile" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a0a0c0', padding: '2rem' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, fontSize: '1.1rem', color: '#f0f0ff', marginBottom: '0.25rem' }}>Select a conversation</h3>
+            <p style={{ fontSize: '0.82rem' }}>Pick a chat from the sidebar list to start swapping skills.</p>
+          </div>
         </div>
       )}
     </div>
