@@ -1,8 +1,17 @@
 'use client';
 
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/lib/supabase';
+
+/** @typedef {'connecting' | 'connected' | 'error' | 'disconnected'} SocketStatus */
 
 const SocketContext = createContext(null);
 
@@ -13,20 +22,30 @@ const SocketContext = createContext(null);
  * different devices and users via Postgres CDC.
  *
  * Supported events emitted to listeners:
- *   - 'new_notification'  — fired when a new notifications row is inserted
- *                           for the current user.
+ *   - 'new_notification' — fired when a new notifications row is inserted
+ *                          for the current user.
  */
 export function SocketProvider({ children }) {
   const { user } = useAuth();
-  const [connected, setConnected] = useState(false);
-  const listenersRef = useRef({});
 
-  // ─── Supabase Realtime: notifications ─────────────────────────────────────
+  /** @type {[SocketStatus, React.Dispatch<React.SetStateAction<SocketStatus>>]} */
+  const [status, setStatus] = useState('disconnected');
+
+  // Stable map of event → list of handlers. Never reassigned, so safe to
+  // reference inside callbacks without adding to dependency arrays.
+  const listenersRef = useRef(/** @type {Record<string, Function[]>} */ ({}));
+
+  // ─── Supabase Realtime subscription ──────────────────────────────────────
   useEffect(() => {
     if (!user?.id) {
-      setConnected(false);
+      setStatus('disconnected');
+      // Clear all listeners when the user logs out so stale handlers from a
+      // previous session don't fire if a new user logs in on the same tab.
+      listenersRef.current = {};
       return;
     }
+
+    setStatus('connecting');
 
     const channel = supabase
       .channel(`notifications:user:${user.id}`)
@@ -50,52 +69,83 @@ export function SocketProvider({ children }) {
             link:      raw.link,
             createdAt: raw.created_at,
           };
-          const handlers = listenersRef.current['new_notification'] || [];
-          handlers.forEach((fn) => fn(notification));
+          _dispatch('new_notification', notification);
         }
       )
-      .subscribe((status) => {
-        setConnected(status === 'SUBSCRIBED');
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          setStatus('connected');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('[SocketContext] Realtime error:', status, err);
+          setStatus('error');
+        } else if (status === 'CLOSED') {
+          setStatus('disconnected');
+        }
       });
 
     return () => {
       supabase.removeChannel(channel);
-      setConnected(false);
+      setStatus('disconnected');
     };
   }, [user?.id]);
 
+  // ─── Internal dispatcher ──────────────────────────────────────────────────
+  // Not exposed — callers use `emit` for same-tab events.
+  function _dispatch(event, data) {
+    (listenersRef.current[event] ?? []).forEach((fn) => fn(data));
+  }
+
+  // ─── Public API ───────────────────────────────────────────────────────────
+
   /**
    * Register a listener for a named event.
-   * Returns an unsubscribe function.
+   * Returns an unsubscribe function — always call it from a useEffect cleanup.
+   *
+   * @param {string} event
+   * @param {Function} handler
+   * @returns {() => void} unsubscribe
    */
-  const on = (event, handler) => {
-    if (!listenersRef.current[event]) {
-      listenersRef.current[event] = [];
-    }
-    listenersRef.current[event].push(handler);
+  const on = useCallback((event, handler) => {
+    const listeners = listenersRef.current;
+    listeners[event] ??= [];
+    listeners[event].push(handler);
+
     return () => {
-      listenersRef.current[event] = listenersRef.current[event].filter(
-        (h) => h !== handler
-      );
+      listeners[event] = listeners[event].filter((h) => h !== handler);
     };
-  };
+  }, []); // stable — listenersRef never changes identity
 
   /**
-   * Emit an event locally (same-tab only).
-   * Kept for backwards-compatibility; server-side events arrive via Realtime.
+   * Emit an event to all same-tab listeners.
+   * Kept for backwards-compatibility; cross-device events arrive via Realtime.
+   *
+   * @param {string} event
+   * @param {unknown} data
    */
-  const emit = (event, data) => {
-    const handlers = listenersRef.current[event] || [];
-    handlers.forEach((fn) => fn(data));
-  };
+  const emit = useCallback((event, data) => {
+    _dispatch(event, data);
+  }, []);
 
   return (
-    <SocketContext.Provider value={{ connected, emit, on }}>
+    <SocketContext.Provider
+      value={{
+        /** @type {boolean} true only when the Realtime channel is fully subscribed */
+        connected: status === 'connected',
+        /** @type {SocketStatus} */
+        status,
+        on,
+        emit,
+      }}
+    >
       {children}
     </SocketContext.Provider>
   );
 }
 
 export function useSocket() {
-  return useContext(SocketContext);
+  const ctx = useContext(SocketContext);
+  if (!ctx) {
+    throw new Error('useSocket must be used inside <SocketProvider>');
+  }
+  return ctx;
 }
