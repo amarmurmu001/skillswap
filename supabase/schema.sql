@@ -189,7 +189,8 @@ insert into skills (name, category) values
 on conflict (name) do nothing;
 
 -- ─── Realtime (enable for messages table) ─────────────────────────────────────
--- Go to Supabase Dashboard → Database → Replication → enable messages table
+-- This enables WebSockets for instant message delivery
+alter publication supabase_realtime add table messages;
 
 -- ─── Auto-create profile on signup (bypasses RLS) ────────────────────────────
 -- This trigger fires when a new row is added to auth.users.
