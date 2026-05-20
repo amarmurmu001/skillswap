@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
   getUserById, getReviewsForUserWithReviewers,
-  getMatchesForUser, createMatchRequest, addNotification,
+  getMatchesForUser, createMatchRequest, addNotification, updateMatchStatus,
 } from '@/lib/data';
 import { scorePair } from '@/lib/matching';
 import { useAppData } from '@/context/AppDataContext';
@@ -102,6 +102,30 @@ export default function UserProfilePage() {
     }
   }
 
+  async function handleAccept() {
+    if (!existingMatch) return;
+    try {
+      await updateMatchStatus(existingMatch.id, 'active');
+      toast.success('Match accepted! 💬');
+      const matches = await getMatchesForUser(currentUser.id);
+      setExistingMatch(matches.find(m => m.userAId === profile.id || m.userBId === profile.id) || null);
+    } catch {
+      toast.error('Failed to accept match');
+    }
+  }
+
+  async function handleReject() {
+    if (!existingMatch) return;
+    try {
+      await updateMatchStatus(existingMatch.id, 'rejected');
+      toast('Match declined.', { icon: '🙅' });
+      const matches = await getMatchesForUser(currentUser.id);
+      setExistingMatch(matches.find(m => m.userAId === profile.id || m.userBId === profile.id) || null);
+    } catch {
+      toast.error('Failed to decline match');
+    }
+  }
+
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '2rem 1.5rem' }}>
       <Link href="/browse" style={{ color: '#818cf8', textDecoration: 'none', fontSize: '0.875rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem', marginBottom: '1.5rem' }}>
@@ -145,13 +169,28 @@ export default function UserProfilePage() {
             <div>
               {existingMatch ? (
                 <div>
-                  <span className={`status-badge status-${existingMatch.status}`}>
-                    {existingMatch.status === 'active' ? 'Connected' : existingMatch.status === 'pending' ? 'Pending' : existingMatch.status}
-                  </span>
-                  {existingMatch.status === 'active' && (
-                    <Link href="/chat" className="btn-primary" style={{ textDecoration: 'none', fontSize: '0.875rem', display: 'block', marginTop: '0.5rem', textAlign: 'center' }}>
-                      <span>Chat</span>
-                    </Link>
+                  {existingMatch.status === 'active' ? (
+                    <>
+                      <span className="status-badge status-active">Connected</span>
+                      <Link href="/chat" className="btn-primary" style={{ textDecoration: 'none', fontSize: '0.875rem', display: 'block', marginTop: '0.5rem', textAlign: 'center' }}>
+                        <span>Chat</span>
+                      </Link>
+                    </>
+                  ) : existingMatch.status === 'pending' ? (
+                    existingMatch.userAId === currentUser.id ? (
+                      <span className="status-badge status-pending" style={{ opacity: 0.7 }}>Pending</span>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: 120 }}>
+                        <button onClick={handleAccept} className="btn-primary" style={{ fontSize: '0.82rem', padding: '0.5rem 1rem' }}>
+                          <span>✓ Accept</span>
+                        </button>
+                        <button onClick={handleReject} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '0.5rem 1rem' }}>
+                          Decline
+                        </button>
+                      </div>
+                    )
+                  ) : (
+                    <span className={`status-badge status-${existingMatch.status}`}>{existingMatch.status}</span>
                   )}
                 </div>
               ) : (

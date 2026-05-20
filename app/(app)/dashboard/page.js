@@ -28,33 +28,47 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!user || !ready) return;
     async function load() {
-      const { users: u, resolveSkills: rs } = appDataRef.current;
-      const offeredSkills = rs(user.skillsOffered || []);
-      const wantedSkills  = rs(user.skillsWanted  || []);
-      const suggestions   = getMatchSuggestionsFromList(user, u).slice(0, 3);
+      try {
+        const { users: u, resolveSkills: rs } = appDataRef.current;
+        const offeredSkills = rs(user.skillsOffered || []);
+        const wantedSkills  = rs(user.skillsWanted  || []);
+        const suggestions   = getMatchSuggestionsFromList(user, u).slice(0, 3);
 
-      const [matches, sessions, notifications] = await Promise.all([
-        getMatchesForUser(user.id),
-        getSessionsForUser(user.id),
-        getNotificationsForUser(user.id),
-      ]);
+        const [matches, sessions, notifications] = await Promise.all([
+          getMatchesForUser(user.id),
+          getSessionsForUser(user.id),
+          getNotificationsForUser(user.id),
+        ]);
 
-      const upcoming = sessions.filter(s => s.status === 'upcoming');
-      const otherIds = upcoming.map(session => {
-        const match = matches.find(m => m.id === session.matchId);
-        return match ? (match.userAId === user.id ? match.userBId : match.userAId) : null;
-      }).filter(Boolean);
-      const usersById = otherIds.length ? await getUsersByIds(otherIds) : {};
+        const upcoming = sessions.filter(s => s.status === 'upcoming');
+        const otherIds = upcoming.map(session => {
+          const match = matches.find(m => m.id === session.matchId);
+          return match ? (match.userAId === user.id ? match.userBId : match.userAId) : null;
+        }).filter(Boolean);
+        const usersById = otherIds.length ? await getUsersByIds(otherIds) : {};
 
-      setData({
-        matches,
-        sessions: upcoming,
-        usersById,
-        notifications: notifications.filter(n => !n.isRead).slice(0, 4),
-        suggestions,
-        offeredSkills,
-        wantedSkills,
-      });
+        setData({
+          matches,
+          sessions: upcoming,
+          usersById,
+          notifications: notifications.filter(n => !n.isRead).slice(0, 4),
+          suggestions,
+          offeredSkills,
+          wantedSkills,
+        });
+      } catch (err) {
+        console.error('[Dashboard] error loading dashboard data:', err);
+        // Fallback data structure to unblock the UI rendering
+        setData({
+          matches: [],
+          sessions: [],
+          usersById: {},
+          notifications: [],
+          suggestions: [],
+          offeredSkills: [],
+          wantedSkills: [],
+        });
+      }
     }
     load();
   // Only re-run when the user identity or data-ready flag changes.

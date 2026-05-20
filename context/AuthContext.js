@@ -21,22 +21,33 @@ export function AuthProvider({ children }) {
     // getSessionUser() reads the JWT from localStorage (no server round-trip),
     // then fetches the profile — only 1 network hop instead of 2.
     // This eliminates the blank-spinner delay on return visits.
-    getSessionUser().then(u => {
-      setUser(u);
-      setLoading(false);
-    });
+    getSessionUser()
+      .then(u => {
+        setUser(u);
+      })
+      .catch(err => {
+        console.error('[AuthContext] error fetching session user on mount:', err);
+        setUser(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
 
     // Auth state changes (login, logout, token refresh) still go through
     // getCurrentUser() which validates the JWT with the server.
     const { data: { subscription } } = onAuthStateChange(async (event) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        const u = await getCurrentUser();
-        setUser(u);
+      try {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          const u = await getCurrentUser();
+          setUser(u);
+        }
+        if (event === 'SIGNED_OUT') setUser(null);
+      } catch (err) {
+        console.error('[AuthContext] auth state change handling error:', err);
       }
-      if (event === 'SIGNED_OUT') setUser(null);
     });
 
-    return () => subscription.unsubscribe();
+    return () => subscription?.unsubscribe?.();
   }, []);
 
   const login = useCallback(async (email, password) => {

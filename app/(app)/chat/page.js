@@ -15,9 +15,14 @@ export default function ChatPage() {
   useEffect(() => {
     if (!user) return;
     async function load() {
-      const convos = await getChatConversations(user.id);
-      setConversations(convos);
-      setLoading(false);
+      try {
+        const convos = await getChatConversations(user.id);
+        setConversations(convos);
+      } catch (err) {
+        console.error('[ChatPage] load error:', err);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, [user]);

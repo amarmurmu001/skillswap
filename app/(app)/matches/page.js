@@ -19,10 +19,16 @@ export default function MatchesPage() {
   const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const m = await getMatchesForUser(user.id);
-    setMatches(m);
-    if (ready) setSuggestions(getMatchSuggestionsFromList(user, users));
-    setLoading(false);
+    try {
+      const m = await getMatchesForUser(user.id);
+      setMatches(m);
+      if (ready) setSuggestions(getMatchSuggestionsFromList(user, users));
+    } catch (err) {
+      console.error('[MatchesPage] load error:', err);
+      toast.error('Failed to load matches');
+    } finally {
+      setLoading(false);
+    }
   }, [user?.id, ready, users]);
 
   useEffect(() => { load(); }, [load]);
@@ -52,7 +58,7 @@ export default function MatchesPage() {
 
   const TABS = [
     { key: 'suggestions', label: 'Suggestions', count: suggestions.length },
-    { key: 'pending',     label: 'Pending',     count: byStatus('pending').length + pendingForMe.length },
+    { key: 'pending',     label: 'Pending',     count: byStatus('pending').length },
     { key: 'active',      label: 'Active',      count: byStatus('active').length },
     { key: 'rejected',    label: 'Declined',    count: byStatus('rejected').length },
   ];

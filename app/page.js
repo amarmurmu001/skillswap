@@ -124,7 +124,7 @@ export default function HomePage() {
 
       {/* Stats */}
       <section style={{ maxWidth: 900, margin: '0 auto 5rem', padding: '0 1.5rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }} className="grid-cols-2 md:grid-cols-4">
+        <div style={{ display: 'grid', gap: '1rem' }} className="grid-cols-2 md:grid-cols-4">
           {stats.map(s => (
             <div key={s.label} className="glass-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
               <div style={{ fontFamily: 'Outfit,sans-serif', fontSize: '2rem', fontWeight: 800 }} className="gradient-text">{s.value}</div>
