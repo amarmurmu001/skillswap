@@ -70,19 +70,26 @@ export default function ProfilePage() {
   async function uploadAvatar(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { toast.error('Image must be under 2 MB'); return; }
+    // Validate size (2 MB limit)
+    if (file.size > 2 * 1024 * 1024) { toast.error('Image must be under 2 MB'); return; }
+    // Validate mime type
     if (!['image/jpeg','image/png','image/webp'].includes(file.type)) { toast.error('Only JPG, PNG or WebP accepted'); return; }
     setAvatarUploading(true);
     try {
-      const ext  = file.name.split('.').pop();
-      const path = `${user.id}/avatar.${ext}`;
-      const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true, contentType: file.type });
+      // Ensure a safe, lower‑cased extension without spaces
+      const rawExt = file.name.split('.').pop() || '';
+      const ext = rawExt.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      // Build a unique path to avoid collisions
+      const timestamp = Date.now();
+      const safePath = `${user.id}/${timestamp}_avatar.${ext}`;
+      const { error: upErr } = await supabase.storage.from('avatars').upload(safePath, file, { upsert: true, contentType: file.type });
       if (upErr) throw upErr;
-      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(safePath);
       await updateUser(user.id, { avatar: publicUrl });
       await refreshUser();
       toast.success('Avatar updated!');
     } catch (err) {
+      console.error('Avatar upload error:', err);
       toast.error(err.message || 'Upload failed');
     } finally {
       setAvatarUploading(false);

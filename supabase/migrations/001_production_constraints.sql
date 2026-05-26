@@ -6,11 +6,9 @@
 --    Prevents duplicate match rows between the same two users,
 --    regardless of who initiated (userA vs userB).
 -- ================================================================
-ALTER TABLE matches
-ADD CONSTRAINT unique_user_pair UNIQUE (
-  LEAST(user_a_id, user_b_id),
-  GREATEST(user_a_id, user_b_id)
-);
+-- Create unique index for matches unordered pair (resolves Postgres UNIQUE expression syntax error)
+CREATE UNIQUE INDEX IF NOT EXISTS unique_user_pair_idx 
+ON matches (LEAST(user_a_id, user_b_id), GREATEST(user_a_id, user_b_id));
 
 -- ================================================================
 -- 2. RLS Policies
@@ -89,8 +87,15 @@ CREATE POLICY "Session participants can view"
     )
   );
 
-CREATE POLICY "Session host can insert/update"
-  ON sessions FOR INSERT WITH CHECK (auth.uid() = host_id);
+CREATE POLICY "Session host can insert"
+  ON sessions FOR INSERT WITH CHECK (
+    auth.uid() = host_id AND
+    EXISTS (
+      SELECT 1 FROM matches
+      WHERE matches.id = match_id
+        AND (matches.user_a_id = auth.uid() OR matches.user_b_id = auth.uid())
+    )
+  );
 
 CREATE POLICY "Session participants can update"
   ON sessions FOR UPDATE
@@ -109,7 +114,14 @@ CREATE POLICY "Anyone can view reviews"
   ON reviews FOR SELECT USING (true);
 
 CREATE POLICY "Authenticated users can leave reviews"
-  ON reviews FOR INSERT WITH CHECK (auth.uid() = reviewer_id);
+  ON reviews FOR INSERT WITH CHECK (
+    auth.uid() = reviewer_id AND
+    EXISTS (
+      SELECT 1 FROM matches
+      WHERE matches.id = match_id
+        AND (matches.user_a_id = auth.uid() OR matches.user_b_id = auth.uid())
+    )
+  );
 
 -- ================================================================
 -- 3. Cascade deletes: when a user is deleted, clean up their data

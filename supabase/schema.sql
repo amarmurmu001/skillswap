@@ -51,8 +51,12 @@ create table if not exists matches (
   status     text default 'pending' check (status in ('pending','active','completed','rejected')),
   score      integer default 0,
   is_perfect boolean default false,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  constraint chk_not_self_match check (user_a_id <> user_b_id)
 );
+
+create unique index if not exists unique_user_pair_idx 
+  on matches (least(user_a_id, user_b_id), greatest(user_a_id, user_b_id));
 
 -- ─── Messages ─────────────────────────────────────────────────────────────────
 create table if not exists messages (
@@ -85,8 +89,48 @@ create table if not exists reviews (
   rating      integer check (rating between 1 and 5),
   comment     text default '',
   skill_taught text default '',
-  created_at  timestamptz default now()
+  created_at  timestamptz default now(),
+  constraint chk_not_self_review check (reviewer_id <> reviewee_id)
 );
+
+-- Recalculate average rating trigger function
+create or replace function public.calculate_user_rating()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_reviewee_id uuid;
+  v_avg_rating numeric(3,2);
+  v_total_reviews integer;
+begin
+  if (TG_OP = 'DELETE') then
+    v_reviewee_id := old.reviewee_id;
+  else
+    v_reviewee_id := new.reviewee_id;
+  end if;
+
+  select coalesce(avg(rating), 0), count(*)
+  into v_avg_rating, v_total_reviews
+  from public.reviews
+  where reviewee_id = v_reviewee_id;
+
+  update public.profiles
+  set rating = round(v_avg_rating, 2),
+      total_reviews = v_total_reviews
+  where id = v_reviewee_id;
+
+  return null;
+end;
+$$;
+
+drop trigger if exists tr_on_review_change on public.reviews;
+create trigger tr_on_review_change
+  after insert or update or delete
+  on public.reviews
+  for each row
+  execute procedure public.calculate_user_rating();
 
 -- ─── Notifications ────────────────────────────────────────────────────────────
 create table if not exists notifications (
@@ -151,13 +195,28 @@ create policy "Sender inserts messages"    on messages for insert
 create policy "Participants view sessions" on sessions for select
   using (exists (select 1 from matches where id = match_id and (user_a_id = auth.uid() or user_b_id = auth.uid())));
 create policy "Host creates sessions"      on sessions for insert
-  with check (auth.uid() = host_id);
+  with check (
+    auth.uid() = host_id and
+    exists (
+      select 1 from matches
+      where matches.id = match_id
+        and (matches.user_a_id = auth.uid() or matches.user_b_id = auth.uid())
+    )
+  );
 create policy "Host updates sessions"      on sessions for update
   using (auth.uid() = host_id);
 
 -- reviews: public read
 create policy "Reviews viewable by all"   on reviews for select using (true);
-create policy "Reviewer inserts review"   on reviews for insert with check (auth.uid() = reviewer_id);
+create policy "Reviewer inserts review"   on reviews for insert
+  with check (
+    auth.uid() = reviewer_id and
+    exists (
+      select 1 from matches
+      where matches.id = match_id
+        and (matches.user_a_id = auth.uid() or matches.user_b_id = auth.uid())
+    )
+  );
 
 -- notifications
 create policy "Own notifications read"    on notifications for select using (auth.uid() = user_id);
@@ -198,16 +257,26 @@ alter publication supabase_realtime add table messages;
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, name, email, avatar_url, joined_at, is_online)
+  insert into public.profiles (id, name, email, bio, location, avatar_url, joined_at, is_online)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
     new.email,
-    'https://api.dicebear.com/8.x/avataaars/svg?seed=' || new.id,
-    now(),
+    coalesce(new.raw_user_meta_data->>'bio', ''),
+    coalesce(new.raw_user_meta_data->>'location', ''),
+    coalesce(
+      new.raw_user_meta_data->>'avatar_url',
+      'https://api.dicebear.com/8.x/avataaars/svg?seed=' || new.id
+    ),
+    coalesce(new.created_at, now()),
     true
   )
-  on conflict (id) do update set email = excluded.email;
+  on conflict (id) do update set
+    email = excluded.email,
+    name = coalesce(excluded.name, profiles.name),
+    bio = coalesce(excluded.bio, profiles.bio),
+    location = coalesce(excluded.location, profiles.location),
+    avatar_url = coalesce(excluded.avatar_url, profiles.avatar_url);
   return new;
 end;
 $$ language plpgsql security definer;

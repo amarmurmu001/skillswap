@@ -27,16 +27,26 @@ $$;
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, name, email, avatar_url, joined_at, is_online)
+  insert into public.profiles (id, name, email, bio, location, avatar_url, joined_at, is_online)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
     new.email,
-    'https://api.dicebear.com/8.x/avataaars/svg?seed=' || new.id,
-    now(),
+    coalesce(new.raw_user_meta_data->>'bio', ''),
+    coalesce(new.raw_user_meta_data->>'location', ''),
+    coalesce(
+      new.raw_user_meta_data->>'avatar_url',
+      'https://api.dicebear.com/8.x/avataaars/svg?seed=' || new.id
+    ),
+    coalesce(new.created_at, now()),
     true
   )
-  on conflict (id) do update set email = excluded.email;
+  on conflict (id) do update set
+    email = excluded.email,
+    name = coalesce(excluded.name, profiles.name),
+    bio = coalesce(excluded.bio, profiles.bio),
+    location = coalesce(excluded.location, profiles.location),
+    avatar_url = coalesce(excluded.avatar_url, profiles.avatar_url);
   return new;
 end;
 $$ language plpgsql security definer;
