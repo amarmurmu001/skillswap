@@ -164,11 +164,6 @@ export default function VideoCall({ roomName, displayName, userId, onLeave }) {
   }, [userId, displayName]);
 
   const handleEndCall = useCallback(() => {
-    // Cleanup prejoin stream if in prejoin
-    if (prejoinStreamRef.current) {
-      prejoinStreamRef.current.getTracks().forEach(t => t.stop());
-      prejoinStreamRef.current = null;
-    }
     engineRef.current?.leave();
     onLeaveRef.current?.();
   }, []);
