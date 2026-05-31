@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import CallEngine from '@/lib/webrtc';
+import CallEngine, { requestMedia } from '@/lib/webrtc';
 
 const MicOn = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>;
 const MicOff = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="2" x2="22" y2="22"/></svg>;
@@ -27,7 +27,6 @@ export default function VideoCall({ roomName, displayName, userId, onLeave }) {
   const chatEndRef = useRef(null);
   const onLeaveRef = useRef(onLeave);
   const prejoinVideoRef = useRef(null);
-  const prejoinStreamRef = useRef(null);
 
   const [phase, setPhase] = useState('prejoin');
   const [audioEnabled, setAudioEnabled] = useState(true);
@@ -41,55 +40,9 @@ export default function VideoCall({ roomName, displayName, userId, onLeave }) {
   const [elapsed, setElapsed] = useState(0);
   const [joining, setJoining] = useState(false);
 
+  const unsubsRef = useRef([]);
+
   useEffect(() => { onLeaveRef.current = onLeave; }, [onLeave]);
-
-  // Main call engine (only starts after user clicks Join)
-  useEffect(() => {
-    if (phase !== 'in-call') return;
-
-    const engine = new CallEngine();
-    engineRef.current = engine;
-
-    const unsubs = [
-      engine.on('peer-joined', ({ displayName: name }) => {
-        setPeerName(name);
-      }),
-      engine.on('peer-left', () => {
-        setPeerName('');
-        setPhase('ended');
-      }),
-      engine.on('remote-stream', (stream) => {
-        setRemoteStream(stream);
-      }),
-      engine.on('local-stream', (stream) => {
-        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-      }),
-      engine.on('state-change', (state) => {
-        if (state === 'closed') setPhase('ended');
-      }),
-      engine.on('chat-message', (msg) => {
-        setChatMessages(prev => [...prev, msg]);
-      }),
-      engine.on('error', (msg) => {
-        setError(msg);
-        setPhase('ended');
-      }),
-      engine.on('screen-share-ended', () => {
-        setIsSharingScreen(false);
-      }),
-    ];
-
-    engine.join(roomName, userId, displayName).catch((err) => {
-      console.error('[VideoCall] join error:', err);
-      setError(err.message || 'Failed to join call');
-      setPhase('ended');
-    });
-
-    return () => {
-      unsubs.forEach(u => u());
-      engine.leave();
-    };
-  }, [phase, roomName, userId, displayName]);
 
   useEffect(() => {
     if (remoteVideoRef.current) {
@@ -108,30 +61,72 @@ export default function VideoCall({ roomName, displayName, userId, onLeave }) {
     return () => clearInterval(id);
   }, [phase]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      unsubsRef.current.forEach(u => u());
+      engineRef.current?.leave();
+    };
+  }, []);
+
   const fmtTime = (s) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
     return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   };
 
-  const handleJoin = useCallback(async () => {
-    setJoining(true);
+  function setupEngine(stream) {
     const engine = new CallEngine();
+    engine.localStream = stream;
     engineRef.current = engine;
 
+    const subs = [
+      engine.on('peer-joined', ({ displayName: name }) => {
+        setPeerName(name);
+      }),
+      engine.on('peer-left', () => {
+        setPeerName('');
+        setPhase('ended');
+      }),
+      engine.on('remote-stream', (s) => {
+        setRemoteStream(s);
+      }),
+      engine.on('local-stream', (s) => {
+        if (localVideoRef.current) localVideoRef.current.srcObject = s;
+      }),
+      engine.on('state-change', (state) => {
+        if (state === 'closed') setPhase('ended');
+      }),
+      engine.on('chat-message', (msg) => {
+        setChatMessages(prev => [...prev, msg]);
+      }),
+      engine.on('error', (msg) => {
+        setError(msg);
+        setPhase('ended');
+      }),
+      engine.on('screen-share-ended', () => {
+        setIsSharingScreen(false);
+      }),
+    ];
+    unsubsRef.current = subs;
+
+    engine.join(roomName, userId, displayName).catch((err) => {
+      console.error('[VideoCall] join error:', err);
+      setError(err.message || 'Failed to join call');
+      setPhase('ended');
+    });
+  }
+
+  const handleJoin = useCallback(async () => {
+    setJoining(true);
+
     try {
-      const stream = await engine.requestMedia();
-      // Show local preview with the acquired stream
+      const stream = await requestMedia();
       if (prejoinVideoRef.current) {
         prejoinVideoRef.current.srcObject = stream;
-        prejoinVideoRef.current.onloadedmetadata = () => {
-          prejoinVideoRef.current.play();
-        };
       }
-      prejoinStreamRef.current = stream;
-      // Feed the stream to the engine
-      engine.localStream = stream;
       setJoining(false);
+      setupEngine(stream);
       setPhase('in-call');
     } catch (err) {
       console.error('[VideoCall] requestMedia:', err);
@@ -139,7 +134,7 @@ export default function VideoCall({ roomName, displayName, userId, onLeave }) {
       setJoining(false);
       setPhase('ended');
     }
-  }, []);
+  }, [roomName, userId, displayName]);
 
   const handleToggleAudio = useCallback(() => {
     const enabled = engineRef.current?.toggleAudio();
