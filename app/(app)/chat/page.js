@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { getChatConversations } from '@/lib/data';
 import { timeAgo } from '@/lib/utils';
@@ -103,9 +104,9 @@ export default function ChatPage() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '0.375rem', flexShrink: 0 }}>
-              <a href={`https://meet.jit.si/skillswap-${activeConvo.match.id}`} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize: '0.75rem', padding: '0.45rem 0.75rem', textDecoration: 'none' }}>
+              <Link href={`/meeting/${activeConvo.match.id}`} className="btn-primary" style={{ fontSize: '0.75rem', padding: '0.45rem 0.75rem', textDecoration: 'none' }}>
                 <span>Call</span>
-              </a>
+              </Link>
               <a href="/sessions" className="btn-secondary" style={{ fontSize: '0.75rem', padding: '0.45rem 0.75rem', textDecoration: 'none' }}>
                 Schedule
               </a>

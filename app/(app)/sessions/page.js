@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { getMatchesForUser, getUsersByIds, getSessionsForUser, createSession, updateSession, addReview } from '@/lib/data';
+import Link from 'next/link';
 import { formatDateTime } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -271,7 +272,7 @@ function SessionRow({ session, userId, matches, usersById, tab, onComplete }) {
       <div style={{ display: 'flex', gap: '0.625rem', flexShrink: 0 }}>
         {tab === 'upcoming' && (
           <>
-            <a href={session.meetingLink} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ fontSize: '0.82rem', padding: '0.5rem 1rem', textDecoration: 'none' }}><span>Join Call</span></a>
+            <Link href={`/meeting/${session.matchId}`} className="btn-primary" style={{ fontSize: '0.82rem', padding: '0.5rem 1rem', textDecoration: 'none' }}><span>Join Call</span></Link>
             {isPast && <button onClick={() => onComplete(session.id)} className="btn-secondary" style={{ fontSize: '0.82rem', padding: '0.5rem 0.875rem' }}>Mark Done</button>}
           </>
         )}
