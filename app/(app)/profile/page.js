@@ -236,7 +236,7 @@ export default function ProfilePage() {
                       background: skillMode === key ? `${color}20` : 'transparent',
                       border: skillMode === key ? `1px solid ${color}40` : '1px solid transparent',
                       color: skillMode === key ? color : '#a0a0c0',
-                      fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
+                      fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s, border-color 0.2s, color 0.2s',
                     }}
                   >
                     {label}
@@ -273,7 +273,7 @@ export default function ProfilePage() {
                                 fontSize: '0.78rem',
                                 fontWeight: 600,
                                 cursor: 'pointer',
-                                transition: 'all 0.2s',
+                                transition: 'background 0.2s, color 0.2s, border-color 0.2s',
                                 background: selected ? (skillMode === 'offer' ? 'rgba(99,102,241,0.2)' : 'rgba(217,70,239,0.15)') : 'rgba(17,17,24,0.8)',
                                 color: selected ? (skillMode === 'offer' ? '#818cf8' : '#e879f9') : '#a0a0c0',
                                 border: selected ? `1px solid ${skillMode === 'offer' ? 'rgba(99,102,241,0.4)' : 'rgba(217,70,239,0.35)'}` : '1px solid rgba(99,102,241,0.12)',

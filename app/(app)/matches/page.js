@@ -74,7 +74,7 @@ export default function MatchesPage() {
 
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
         {TABS.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{ padding: '0.5rem 1.25rem', borderRadius: '0.875rem', background: tab === t.key ? 'rgba(99,102,241,0.15)' : 'transparent', border: `1px solid ${tab === t.key ? 'rgba(99,102,241,0.4)' : 'rgba(99,102,241,0.12)'}`, color: tab === t.key ? '#818cf8' : '#a0a0c0', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button key={t.key} onClick={() => setTab(t.key)} style={{ padding: '0.5rem 1.25rem', borderRadius: '0.875rem', background: tab === t.key ? 'rgba(99,102,241,0.15)' : 'transparent', border: `1px solid ${tab === t.key ? 'rgba(99,102,241,0.4)' : 'rgba(99,102,241,0.12)'}`, color: tab === t.key ? '#818cf8' : '#a0a0c0', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s, border-color 0.2s, color 0.2s', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             {t.label}
             {t.count > 0 && <span style={{ background: tab === t.key ? '#6366f1' : 'rgba(99,102,241,0.2)', color: tab === t.key ? '#fff' : '#818cf8', borderRadius: 9999, padding: '0 7px', fontSize: '0.7rem', fontWeight: 700 }}>{t.count}</span>}
           </button>

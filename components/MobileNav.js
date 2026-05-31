@@ -43,6 +43,8 @@ export default function MobileNav() {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={active ? 'page' : undefined}
+              aria-label={item.label}
               style={{
                 flex: 1,
                 display: 'flex',
@@ -54,6 +56,7 @@ export default function MobileNav() {
                 color: active ? '#818cf8' : '#6b7280',
                 transition: 'color 0.2s',
                 paddingBottom: 'env(safe-area-inset-bottom, 0)',
+                position: 'relative',
               }}
             >
               <Icon size={22} />

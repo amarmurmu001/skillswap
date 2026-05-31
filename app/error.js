@@ -10,9 +10,9 @@ export default function GlobalError({ error, reset }) {
   }, [error]);
 
   return (
-    <html lang="en">
+    <html lang="en" style={{ colorScheme: 'dark' }}>
       <body style={{ margin: 0, background: '#0a0a0f', color: '#f0f0ff', fontFamily: 'system-ui,sans-serif' }}>
-        <div style={{
+        <div role="alert" style={{
           minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
@@ -72,10 +72,11 @@ export default function GlobalError({ error, reset }) {
                   cursor: 'pointer',
                   fontSize: '0.9rem',
                 }}
+                aria-label="Try again to load the page"
               >
                 Try Again
               </button>
-              <a
+              <Link
                 href="/"
                 style={{
                   background: 'transparent',
@@ -90,7 +91,7 @@ export default function GlobalError({ error, reset }) {
                 }}
               >
                 Go Home
-              </a>
+              </Link>
             </div>
           </div>
         </div>

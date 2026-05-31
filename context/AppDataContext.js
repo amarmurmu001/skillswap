@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { getSkills, getUsers, invalidateUsersCache } from '@/lib/data';
 import { cacheGet } from '@/lib/cache';
@@ -12,51 +12,56 @@ export function AppDataProvider({ children }) {
   const [skills, setSkills] = useState([]);
   const [users, setUsers]   = useState([]);
   const [ready, setReady]   = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   // ─── Eager skill prefetch ────────────────────────────────────────────────
-  // Skills are a public read (no RLS restriction) and rarely change.
-  // Start fetching immediately on mount — don't wait for auth to resolve.
-  // getSkills() uses cacheFetch internally so repeated calls are free.
   useEffect(() => {
-    getSkills().then(setSkills).catch(() => {});
-  }, []); // intentionally runs once, independent of user
+    getSkills().then(skills => {
+      if (mountedRef.current) setSkills(skills);
+    }).catch(() => {});
+  }, []);
 
   // ─── User list with stale-while-revalidate ───────────────────────────────
-  const load = useCallback(async () => {
+  useEffect(() => {
     if (!user) {
       setUsers([]);
       setReady(false);
       return;
     }
 
-    // If the in-memory cache already has a user list (from a previous load or
-    // a recently completed fetch), serve it immediately so pages render at
-    // once — no spinner. Then revalidate in the background so data stays fresh.
-    const cached = cacheGet('users:list');
-    if (cached) {
-      setUsers(cached);
-      setReady(true);
-      // Background revalidation — silently updates the list
-      getUsers()
-        .then(fresh => setUsers(fresh))
-        .catch(() => {});
-      return;
+    let cancelled = false;
+
+    async function load() {
+      const cached = cacheGet('users:list');
+      if (cached) {
+        if (!cancelled) { setUsers(cached); setReady(true); }
+        try {
+          const fresh = await getUsers();
+          if (!cancelled) setUsers(fresh);
+        } catch {}
+        return;
+      }
+
+      if (!cancelled) setReady(false);
+      try {
+        const [userList, skillList] = await Promise.all([getUsers(), getSkills()]);
+        if (!cancelled) {
+          setUsers(userList);
+          setSkills(skillList);
+        }
+      } finally {
+        if (!cancelled) setReady(true);
+      }
     }
 
-    // No cache — first load. Fetch and block until done.
-    setReady(false);
-    try {
-      const [userList, skillList] = await Promise.all([getUsers(), getSkills()]);
-      setUsers(userList);
-      setSkills(skillList);
-    } finally {
-      setReady(true);
-    }
-  }, [user?.id]); // stable — only changes when the logged-in user changes
-
-  useEffect(() => {
     load();
-  }, [load]);
+
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   const skillsById = useMemo(
     () => Object.fromEntries(skills.map(s => [s.id, s])),
@@ -71,14 +76,14 @@ export function AppDataProvider({ children }) {
   const refreshUsers = useCallback(async () => {
     invalidateUsersCache();
     const userList = await getUsers();
-    setUsers(userList);
+    if (mountedRef.current) setUsers(userList);
     return userList;
   }, []);
 
+  const value = useMemo(() => ({ skills, skillsById, users, ready, resolveSkills, refreshUsers }), [skills, skillsById, users, ready, resolveSkills, refreshUsers]);
+
   return (
-    <AppDataContext.Provider
-      value={{ skills, skillsById, users, ready, resolveSkills, refreshUsers, reload: load }}
-    >
+    <AppDataContext.Provider value={value}>
       {children}
     </AppDataContext.Provider>
   );

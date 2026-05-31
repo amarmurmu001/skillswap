@@ -22,7 +22,7 @@ export default function SkillTag({ skill, variant = 'offer', onRemove, size = 'm
       borderRadius: '9999px',
       fontWeight: 600,
       letterSpacing: '0.01em',
-      transition: 'all 0.2s ease',
+      transition: 'background 0.2s ease, color 0.2s ease, border-color 0.2s ease',
       background: isOffer ? colors.bg : 'rgba(217,70,239,0.1)',
       color: isOffer ? colors.text : '#e879f9',
       border: `1px solid ${isOffer ? colors.border : 'rgba(217,70,239,0.2)'}`,

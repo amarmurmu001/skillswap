@@ -112,7 +112,7 @@ export default function BrowsePage() {
       </div>
 
       <div style={{ display: 'flex', gap: '0.875rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <input type="text" className="input-field" placeholder="Search by name, bio, location..." value={search} onChange={e => setSearch(e.target.value)} style={{ flex: '1 1 220px', minWidth: 0 }} />
+        <input type="text" name="browse-search" autoComplete="off" className="input-field" placeholder="Search by name, bio, location…" aria-label="Search community members" value={search} onChange={e => setSearch(e.target.value)} style={{ flex: '1 1 220px', minWidth: 0 }} />
         <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="input-field" style={{ flex: '0 0 auto', width: 'auto', cursor: 'pointer' }}>
           <option value="match">Sort: Best Match</option>
           <option value="rating">Sort: Rating</option>
@@ -122,7 +122,7 @@ export default function BrowsePage() {
 
       <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
         {CATEGORIES.map(cat => (
-          <button key={cat} onClick={() => setCategory(cat)} style={{ padding: '0.4rem 1rem', borderRadius: 9999, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', background: category === cat ? 'rgba(99,102,241,0.2)' : 'rgba(17,17,24,0.8)', color: category === cat ? '#818cf8' : '#a0a0c0', border: `1px solid ${category === cat ? 'rgba(99,102,241,0.4)' : 'rgba(99,102,241,0.1)'}` }}>
+          <button key={cat} onClick={() => setCategory(cat)} style={{ padding: '0.4rem 1rem', borderRadius: 9999, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s, color 0.2s, border-color 0.2s', background: category === cat ? 'rgba(99,102,241,0.2)' : 'rgba(17,17,24,0.8)', color: category === cat ? '#818cf8' : '#a0a0c0', border: `1px solid ${category === cat ? 'rgba(99,102,241,0.4)' : 'rgba(99,102,241,0.1)'}` }}>
             {cat}
           </button>
         ))}

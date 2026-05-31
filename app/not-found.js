@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function NotFound() {
   return (
-    <div style={{
+    <div role="alert" style={{
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
@@ -11,10 +11,9 @@ export default function NotFound() {
       position: 'relative',
       zIndex: 1,
     }}>
-      <div className="mesh-bg" />
+      <div className="mesh-bg" aria-hidden="true" />
       <div style={{ width: '100%', maxWidth: 480, textAlign: 'center' }}>
-        {/* 404 number */}
-        <div style={{
+        <div aria-hidden="true" style={{
           fontFamily: 'var(--font-outfit,Outfit),sans-serif',
           fontSize: 'clamp(6rem,20vw,9rem)',
           fontWeight: 900,
@@ -45,7 +44,7 @@ export default function NotFound() {
           lineHeight: 1.6,
           marginBottom: '2.5rem',
         }}>
-          The page you're looking for doesn't exist or has been moved.
+          The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
 
         <div style={{ display: 'flex', gap: '0.875rem', justifyContent: 'center', flexWrap: 'wrap' }}>

@@ -124,6 +124,7 @@ export default function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? 'page' : undefined}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.4rem',
                   padding: '0.5rem 0.875rem',
@@ -133,7 +134,7 @@ export default function Navbar() {
                   fontWeight: 500,
                   color: active ? '#818cf8' : '#a0a0c0',
                   background: active ? 'rgba(99,102,241,0.1)' : 'transparent',
-                  transition: 'all 0.2s ease',
+                  transition: 'color 0.2s ease, background 0.2s ease',
                   whiteSpace: 'nowrap',
                 }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.color = '#c7d2fe'; if (!active) e.currentTarget.style.background = 'rgba(99,102,241,0.06)'; }}
@@ -153,6 +154,8 @@ export default function Navbar() {
           <div ref={notifRef} style={{ position: 'relative' }}>
             <button
               onClick={() => { setShowNotif(v => !v); setShowUser(false); }}
+              aria-label={showNotif ? 'Close notifications' : `Notifications${unread > 0 ? ` (${unread} unread)` : ''}`}
+              aria-expanded={showNotif}
               style={{
                 width: 38, height: 38,
                 borderRadius: '0.625rem',
@@ -161,7 +164,7 @@ export default function Navbar() {
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 position: 'relative',
-                transition: 'all 0.2s',
+                transition: 'background 0.2s, color 0.2s',
                 color: '#a0a0c0',
               }}
               onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; e.currentTarget.style.color = '#c7d2fe'; }}
@@ -246,6 +249,8 @@ export default function Navbar() {
           <div ref={userRef} style={{ position: 'relative' }}>
             <button
               onClick={() => { setShowUser(v => !v); setShowNotif(false); }}
+              aria-label={`User menu${showUser ? ' (open)' : ''}`}
+              aria-expanded={showUser}
               style={{
                 display: 'flex', alignItems: 'center', gap: '0.5rem',
                 padding: '0.375rem 0.75rem 0.375rem 0.375rem',
@@ -253,7 +258,7 @@ export default function Navbar() {
                 background: 'rgba(99,102,241,0.08)',
                 border: '1px solid rgba(99,102,241,0.18)',
                 cursor: 'pointer',
-                transition: 'all 0.2s',
+                transition: 'background 0.2s, border-color 0.2s',
               }}
               onMouseEnter={e => e.currentTarget.style.background = 'rgba(99,102,241,0.14)'}
               onMouseLeave={e => { if (!showUser) e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; }}

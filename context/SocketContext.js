@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -126,17 +127,15 @@ export function SocketProvider({ children }) {
     _dispatch(event, data);
   }, []);
 
+  const value = useMemo(() => ({
+    connected: status === 'connected',
+    status,
+    on,
+    emit,
+  }), [status, on, emit]);
+
   return (
-    <SocketContext.Provider
-      value={{
-        /** @type {boolean} true only when the Realtime channel is fully subscribed */
-        connected: status === 'connected',
-        /** @type {SocketStatus} */
-        status,
-        on,
-        emit,
-      }}
-    >
+    <SocketContext.Provider value={value}>
       {children}
     </SocketContext.Provider>
   );

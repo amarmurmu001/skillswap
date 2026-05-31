@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   getCurrentUser,
   getSessionUser,
@@ -17,24 +17,11 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fast path on mount:
-    // getSessionUser() reads the JWT from localStorage (no server round-trip),
-    // then fetches the profile — only 1 network hop instead of 2.
-    // This eliminates the blank-spinner delay on return visits.
     getSessionUser()
-      .then(u => {
-        setUser(u);
-      })
-      .catch(err => {
-        console.error('[AuthContext] error fetching session user on mount:', err);
-        setUser(null);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      .then(u => setUser(u))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
 
-    // Auth state changes (login, logout, token refresh) still go through
-    // getCurrentUser() which validates the JWT with the server.
     const { data: { subscription } } = onAuthStateChange(async (event) => {
       try {
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
@@ -43,7 +30,7 @@ export function AuthProvider({ children }) {
         }
         if (event === 'SIGNED_OUT') setUser(null);
       } catch (err) {
-        console.error('[AuthContext] auth state change handling error:', err);
+        console.error('[AuthContext] auth state change error:', err);
       }
     });
 
@@ -58,7 +45,7 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (data) => {
     const result = await authRegister(data);
-    if (!result.error) setUser(result.user ?? (await getCurrentUser()));
+    if (!result.error && !result.needsConfirm) setUser(result.user ?? (await getCurrentUser()));
     return result;
   }, []);
 
@@ -80,8 +67,10 @@ export function AuthProvider({ children }) {
     return updated;
   }, [user]);
 
+  const value = useMemo(() => ({ user, loading, login, register, logout, refreshUser, updateProfile }), [user, loading, login, register, logout, refreshUser, updateProfile]);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser, updateProfile }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

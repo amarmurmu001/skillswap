@@ -150,7 +150,7 @@ export default function ChatBox({ matchId, currentUserId, otherUser }) {
             <div key={msg.id} style={{ display: 'flex', flexDirection: isMine ? 'row-reverse' : 'row', gap: '0.5rem', alignItems: 'flex-end' }}>
               {!isMine && (
                 <div style={{ width: 28, flexShrink: 0 }}>
-                  {showAvatar && <img src={otherUser?.avatar} alt="" style={{ width: 28, height: 28, borderRadius: '50%', background: '#1a1a27' }} />}
+                  {showAvatar && <img src={otherUser?.avatar} alt={otherUser?.name || ''} style={{ width: 28, height: 28, borderRadius: '50%', background: '#1a1a27' }} />}
                 </div>
               )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: isMine ? 'flex-end' : 'flex-start', maxWidth: '72%' }}>
@@ -171,15 +171,16 @@ export default function ChatBox({ matchId, currentUserId, otherUser }) {
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a message… (Enter to send)"
+          aria-label="Message input"
           rows={1}
-          style={{ flex: 1, resize: 'none', background: 'rgba(17,17,24,0.9)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '1rem', padding: '0.75rem 1rem', color: '#f0f0ff', fontSize: '0.875rem', outline: 'none', maxHeight: 120, overflowY: 'auto', fontFamily: 'var(--font-inter, Inter), sans-serif', lineHeight: 1.5 }}
+          style={{ flex: 1, resize: 'none', background: 'rgba(17,17,24,0.9)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: '1rem', padding: '0.75rem 1rem', color: '#f0f0ff', fontSize: '0.875rem', maxHeight: 120, overflowY: 'auto', fontFamily: 'var(--font-inter, Inter), sans-serif', lineHeight: 1.5 }}
           onFocus={e => e.target.style.borderColor = 'rgba(99,102,241,0.5)'}
           onBlur={e => e.target.style.borderColor = 'rgba(99,102,241,0.2)'}
         />
         <button
           type="submit"
           disabled={!input.trim() || sending}
-          style={{ width: 44, height: 44, borderRadius: '50%', background: input.trim() ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(99,102,241,0.2)', border: 'none', cursor: input.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s', flexShrink: 0 }}
+          style={{ width: 44, height: 44, borderRadius: '50%', background: input.trim() ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(99,102,241,0.2)', border: 'none', cursor: input.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s', flexShrink: 0 }}
           aria-label="Send message"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

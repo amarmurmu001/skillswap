@@ -113,7 +113,7 @@ export default function OnboardingModal({ onComplete }) {
                               fontSize: '0.78rem',
                               fontWeight: 600,
                               cursor: 'pointer',
-                              transition: 'all 0.15s',
+                              transition: 'background 0.15s, color 0.15s, border-color 0.15s',
                               background: selected ? `${current.color}20` : 'rgba(17,17,24,0.8)',
                               color: selected ? current.color : '#a0a0c0',
                               border: `1px solid ${selected ? `${current.color}40` : 'rgba(99,102,241,0.12)'}`,

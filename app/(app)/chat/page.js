@@ -63,7 +63,7 @@ export default function ChatPage() {
           {conversations.map(({ match, other, lastMsg }) => {
             const isActive = activeMatchId === match.id;
             return (
-              <button key={match.id} onClick={() => setActiveMatchId(match.id)} style={{ width: '100%', padding: '1rem 1.25rem', background: isActive ? 'rgba(99,102,241,0.1)' : 'transparent', border: 'none', borderLeft: isActive ? '2px solid #6366f1' : '2px solid transparent', cursor: 'pointer', textAlign: 'left', display: 'flex', gap: '0.75rem', alignItems: 'center', transition: 'all 0.2s' }}>
+              <button key={match.id} onClick={() => setActiveMatchId(match.id)} style={{ width: '100%', padding: '1rem 1.25rem', background: isActive ? 'rgba(99,102,241,0.1)' : 'transparent', border: 'none', borderLeft: isActive ? '2px solid #6366f1' : '2px solid transparent', cursor: 'pointer', textAlign: 'left', display: 'flex', gap: '0.75rem', alignItems: 'center', transition: 'background 0.2s, border-left-color 0.2s' }}>
                 <div style={{ position: 'relative', flexShrink: 0 }}>
                   <img src={other?.avatar} alt={other?.name} style={{ width: 44, height: 44, borderRadius: '50%', background: '#1a1a27' }} />
                   {other?.isOnline && <div style={{ position: 'absolute', bottom: 1, right: 1, width: 10, height: 10, background: '#4ade80', borderRadius: '50%', border: '2px solid #111118' }} />}

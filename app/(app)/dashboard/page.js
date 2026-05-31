@@ -101,7 +101,7 @@ export default function DashboardPage() {
       <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-outfit,Outfit),sans-serif', fontWeight: 800, fontSize: 'clamp(1.5rem,4vw,2rem)', marginBottom: '0.25rem' }}>Welcome back, {user.name?.split(' ')[0]}</h1>
-          <p style={{ color: '#a0a0c0', fontSize: '0.9rem' }}>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+          <p style={{ color: '#a0a0c0', fontSize: '0.9rem' }}>{new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date())}</p>
         </div>
         <Link href="/matches" className="btn-primary" style={{ textDecoration: 'none', fontSize: '0.875rem' }}><span>Find Matches</span></Link>
       </div>

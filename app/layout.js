@@ -34,16 +34,23 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`dark ${inter.variable} ${outfit.variable}`}>
+    <html lang="en" className={`dark ${inter.variable} ${outfit.variable}`} style={{ colorScheme: 'dark' }}>
+      <head>
+        <meta name="theme-color" content="#0a0a0f" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body className="antialiased">
         <ErrorBoundary>
           <AuthProvider>
             <AppDataProvider>
               <SocketProvider>
-                <div className="mesh-bg" />
+                <div className="mesh-bg" aria-hidden="true" />
+                <div id="skip-to-main" />
                 {children}
                 <Toaster
                   position="bottom-right"
+                  containerClassName="toast-container"
                   toastOptions={{
                     style: {
                       background: '#1a1a27',

@@ -54,6 +54,7 @@ export default function RegisterPage() {
     const result = await register(form);
     setLoading(false);
     if (result.error) { toast.error(result.error); }
+    else if (result.needsConfirm) { toast.success('Check your email to confirm your account!'); router.push('/auth/login'); }
     else { toast.success('Welcome to SkillSwap! 🎉'); router.push('/dashboard'); }
   }
 
@@ -77,7 +78,7 @@ export default function RegisterPage() {
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.75rem', justifyContent: 'center' }}>
           {STEPS.map((s, i) => (
             <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: i <= step ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(99,102,241,0.1)', border: `1px solid ${i <= step ? '#6366f1' : 'rgba(99,102,241,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: i <= step ? '#fff' : '#6b7280', transition: 'all 0.3s' }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: i <= step ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'rgba(99,102,241,0.1)', border: `1px solid ${i <= step ? '#6366f1' : 'rgba(99,102,241,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: i <= step ? '#fff' : '#6b7280', transition: 'background 0.3s, border-color 0.3s, color 0.3s' }}>
                 {i < step ? '✓' : i + 1}
               </div>
               <span style={{ fontSize: '0.8rem', fontWeight: 600, color: i === step ? '#c7d2fe' : '#6b7280' }}>{s}</span>
@@ -94,16 +95,16 @@ export default function RegisterPage() {
                 <p style={{ color: '#a0a0c0', fontSize: '0.875rem' }}>Join the skill exchange community</p>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Full Name</label>
-                <input type="text" className="input-field" placeholder="Arjun Mehta" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required />
+                <label htmlFor="reg-name" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Full Name</label>
+                <input id="reg-name" type="text" name="name" autoComplete="name" className="input-field" placeholder="Arjun Mehta" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Email</label>
-                <input type="email" className="input-field" placeholder="you@example.com" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} required />
+                <label htmlFor="reg-email" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Email</label>
+                <input id="reg-email" type="email" name="email" autoComplete="email" className="input-field" placeholder="you@example.com" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} required />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Password</label>
-                <input type="password" className="input-field" placeholder="Minimum 6 characters" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required />
+                <label htmlFor="reg-password" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Password</label>
+                <input id="reg-password" type="password" name="password" autoComplete="new-password" className="input-field" placeholder="Minimum 6 characters" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} required />
                 {form.password && form.password.length < 6 && <p style={{ color: '#f87171', fontSize: '0.75rem', marginTop: 4 }}>At least 6 characters required</p>}
               </div>
             </div>
@@ -116,12 +117,12 @@ export default function RegisterPage() {
                 <p style={{ color: '#a0a0c0', fontSize: '0.875rem' }}>Tell the community about yourself</p>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Location (optional)</label>
-                <input type="text" className="input-field" placeholder="e.g. Mumbai, India" value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} />
+                <label htmlFor="reg-location" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Location (optional)</label>
+                <input id="reg-location" type="text" name="location" autoComplete="country-name" className="input-field" placeholder="e.g. Mumbai, India" value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Bio (optional)</label>
-                <textarea className="input-field" placeholder="Tell others what you're passionate about..." value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))} rows={4} style={{ resize: 'vertical', fontFamily: 'Inter,sans-serif' }} />
+                <label htmlFor="reg-bio" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Bio (optional)</label>
+                <textarea id="reg-bio" name="bio" className="input-field" placeholder="Tell others what you're passionate about..." value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))} rows={4} style={{ resize: 'vertical', fontFamily: 'Inter,sans-serif' }} />
               </div>
             </div>
           )}
@@ -133,9 +134,9 @@ export default function RegisterPage() {
                 <p style={{ color: '#a0a0c0', fontSize: '0.875rem' }}>Select what you can teach and want to learn</p>
               </div>
 
-              <div style={{ display: 'flex', background: 'rgba(17,17,24,0.9)', borderRadius: '0.875rem', padding: '0.25rem', marginBottom: '1rem', border: '1px solid rgba(99,102,241,0.15)' }}>
+              <div role="tablist" aria-label="Skill selection mode" style={{ display: 'flex', background: 'rgba(17,17,24,0.9)', borderRadius: '0.875rem', padding: '0.25rem', marginBottom: '1rem', border: '1px solid rgba(99,102,241,0.15)' }}>
                 {[['offer', '🎓 I can teach', '#6366f1'], ['want', '🌱 I want to learn', '#d946ef']].map(([key, label, color]) => (
-                  <button key={key} onClick={() => setMode(key)} style={{ flex: 1, padding: '0.625rem', borderRadius: '0.75rem', background: mode === key ? `${color}20` : 'transparent', border: mode === key ? `1px solid ${color}50` : '1px solid transparent', color: mode === key ? color : '#a0a0c0', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>
+                  <button key={key} role="tab" aria-selected={mode === key} onClick={() => setMode(key)} style={{ flex: 1, padding: '0.625rem', borderRadius: '0.75rem', background: mode === key ? `${color}20` : 'transparent', border: mode === key ? `1px solid ${color}50` : '1px solid transparent', color: mode === key ? color : '#a0a0c0', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s, border-color 0.2s, color 0.2s' }}>
                     {label}
                     <span style={{ marginLeft: 6, background: color, color: '#fff', borderRadius: 9999, padding: '0 6px', fontSize: '0.7rem' }}>
                       {form[key === 'offer' ? 'skillsOffered' : 'skillsWanted'].length || ''}
@@ -144,7 +145,7 @@ export default function RegisterPage() {
                 ))}
               </div>
 
-              <input type="text" className="input-field" placeholder="🔍 Search skills..." value={search} onChange={e => setSearch(e.target.value)} style={{ marginBottom: '1rem' }} />
+              <input type="text" name="skill-search" autoComplete="off" className="input-field" placeholder="Search skills…" aria-label="Search skills" value={search} onChange={e => setSearch(e.target.value)} style={{ marginBottom: '1rem' }} />
 
               {skillsError ? (
                 <div style={{ textAlign: 'center', padding: '2rem', color: '#f87171' }}>
@@ -175,7 +176,7 @@ export default function RegisterPage() {
                             const key = mode === 'offer' ? 'skillsOffered' : 'skillsWanted';
                             const selected = form[key].includes(s.id);
                             return (
-                              <button key={s.id} onClick={() => toggleSkill(s.id)} style={{ padding: '0.35rem 0.875rem', borderRadius: 9999, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s', background: selected ? (mode === 'offer' ? 'rgba(99,102,241,0.25)' : 'rgba(217,70,239,0.2)') : 'rgba(17,17,24,0.9)', color: selected ? (mode === 'offer' ? '#818cf8' : '#e879f9') : '#a0a0c0', border: selected ? `1px solid ${mode === 'offer' ? 'rgba(99,102,241,0.5)' : 'rgba(217,70,239,0.4)'}` : '1px solid rgba(99,102,241,0.15)' }}>
+                              <button key={s.id} onClick={() => toggleSkill(s.id)} style={{ padding: '0.35rem 0.875rem', borderRadius: 9999, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s, color 0.2s, border-color 0.2s', background: selected ? (mode === 'offer' ? 'rgba(99,102,241,0.25)' : 'rgba(217,70,239,0.2)') : 'rgba(17,17,24,0.9)', color: selected ? (mode === 'offer' ? '#818cf8' : '#e879f9') : '#a0a0c0', border: selected ? `1px solid ${mode === 'offer' ? 'rgba(99,102,241,0.5)' : 'rgba(217,70,239,0.4)'}` : '1px solid rgba(99,102,241,0.15)' }}>
                                 {selected ? '✓ ' : ''}{s.name}
                               </button>
                             );

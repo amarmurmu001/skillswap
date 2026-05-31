@@ -50,9 +50,12 @@ export default function LoginPage() {
           
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Email</label>
+              <label htmlFor="login-email" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Email</label>
               <input
+                id="login-email"
                 type="email"
+                name="email"
+                autoComplete="email"
                 className="input-field"
                 placeholder="you@example.com"
                 value={form.email}
@@ -62,10 +65,13 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Password</label>
+              <label htmlFor="login-password" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#c7d2fe', marginBottom: '0.5rem' }}>Password</label>
               <div style={{ position: 'relative' }}>
                 <input
+                  id="login-password"
                   type={showPass ? 'text' : 'password'}
+                  name="password"
+                  autoComplete="current-password"
                   className="input-field"
                   placeholder="••••••••"
                   value={form.password}
@@ -76,6 +82,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPass(v => !v)}
+                  aria-label={showPass ? 'Hide password' : 'Show password'}
                   style={{ position: 'absolute', right: '0.875rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#a0a0c0', fontSize: '1rem' }}
                 >
                   {showPass ? '🙈' : '👁️'}

@@ -4,22 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { getStats } from '@/lib/data';
-import {
-  HiOutlineSparkles,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineCalendarDays,
-  HiOutlineStar,
-  HiOutlineVideoCamera,
-  HiOutlineGlobeAlt,
-} from 'react-icons/hi2';
 
 // ─── Design system ────────────────────────────────────────────────────────────
 // All tokens, utilities, and component classes live here so the JSX stays
 // clean and the system is easy to audit in one place.
 const DS = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
-
   /* ── Tokens ──────────────────────────────────────────────────────── */
   .lp {
     /* Surface */
@@ -70,9 +59,9 @@ const DS = `
     --t-fast: 140ms var(--ease);
     --t-base: 240ms var(--ease);
 
-    /* Fonts */
-    --f-display: 'Plus Jakarta Sans', sans-serif;
-    --f-body:    'DM Sans', sans-serif;
+    /* Fonts — uses next/font/google (Inter + Outfit), already preloaded by root layout */
+    --f-display: 'Outfit', sans-serif;
+    --f-body:    'Inter', sans-serif;
   }
 
   /* ── Base ────────────────────────────────────────────────────────── */
@@ -148,7 +137,7 @@ const DS = `
     font-family: var(--f-display); font-weight: 600; font-size: 0.875rem;
     border-radius: var(--r-pill); cursor: pointer;
     text-decoration: none; border: none; outline: none;
-    white-space: nowrap; transition: all var(--t-base);
+    white-space: nowrap; transition: background var(--t-base), color var(--t-base), box-shadow var(--t-base), transform var(--t-base);
     padding: 0.65rem 1.4rem;
   }
   .btn:focus-visible { outline: 2px solid var(--c-indigo-400); outline-offset: 3px; }
@@ -309,7 +298,7 @@ const DS = `
     display: flex; align-items: center; justify-content: center;
     color: var(--c-indigo-400);
     margin-bottom: var(--s-5);
-    transition: all var(--t-base);
+    transition: background var(--t-base), border-color var(--t-base), box-shadow var(--t-base);
   }
   .feat-card:hover .feat-card__icon {
     background: rgba(99,102,241,0.14);
@@ -351,7 +340,7 @@ const DS = `
     font-size: 0.8rem; font-weight: 700;
     color: var(--c-text-3);
     position: relative; z-index: 1;
-    transition: all var(--t-base);
+    transition: border-color var(--t-base), color var(--t-base), background var(--t-base);
   }
   .step:hover .step__num {
     border-color: var(--c-border-glow);
@@ -440,16 +429,30 @@ const DS = `
 
     .btn--lg { padding: 0.8rem 1.6rem; font-size: 0.9rem; }
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lp, .lp * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    .hero::after { display: none; }
+    .steps-grid::before { display: none; }
+    .cta-card::before { display: none; }
+    .nav { backdrop-filter: none; }
+  }
 `;
 
-// ─── Static data ──────────────────────────────────────────────────────────────
+const Sparkle = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 6 6 0 0 0-9-9"/><path d="M20 20a6 6 0 0 0-6-6 6 6 0 0 0 6 6"/><path d="M4 20a6 6 0 0 0 6-6 6 6 0 0 0-6 6"/><path d="M12 15a3 3 0 0 0 3-3 3 3 0 0 0-3-3"/></svg>;
+const ChatBubble = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
+const Calendar = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+const StarIcon = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+const VideoCamera = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>;
+const Globe = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;
+
 const FEATURES = [
-  { Icon: HiOutlineSparkles,            title: 'Smart matching',    desc: 'Bidirectional algorithm pairs users where both sides can teach and learn simultaneously — perfect matches ranked first.' },
-  { Icon: HiOutlineChatBubbleLeftRight, title: 'Real-time chat',    desc: 'Supabase Realtime keeps messages in sync across devices. No page refresh, no lag.' },
-  { Icon: HiOutlineCalendarDays,        title: 'Session scheduler', desc: 'Book sessions in-app. Every confirmed booking auto-generates a Jitsi video link.' },
-  { Icon: HiOutlineStar,                title: 'Rating system',     desc: 'Post-session reviews build reputation over time so the best teachers rise to the top.' },
-  { Icon: HiOutlineVideoCamera,         title: 'Free video calls',  desc: 'Integrated Jitsi Meet — 100 % free HD video calling, no account or download needed.' },
-  { Icon: HiOutlineGlobeAlt,            title: 'Global community',  desc: 'Connect with skill enthusiasts anywhere. Geography is no longer a barrier to learning.' },
+  { Icon: Sparkle,            title: 'Smart matching',    desc: 'Bidirectional algorithm pairs users where both sides can teach and learn simultaneously — perfect matches ranked first.' },
+  { Icon: ChatBubble,         title: 'Real-time chat',    desc: 'Supabase Realtime keeps messages in sync across devices. No page refresh, no lag.' },
+  { Icon: Calendar,           title: 'Session scheduler', desc: 'Book sessions in-app. Every confirmed booking auto-generates a Jitsi video link.' },
+  { Icon: StarIcon,           title: 'Rating system',     desc: 'Post-session reviews build reputation over time so the best teachers rise to the top.' },
+  { Icon: VideoCamera,        title: 'Free video calls',  desc: 'Integrated Jitsi Meet — 100 % free HD video calling, no account or download needed.' },
+  { Icon: Globe,              title: 'Global community',  desc: 'Connect with skill enthusiasts anywhere. Geography is no longer a barrier to learning.' },
 ];
 
 const STEPS = [
@@ -459,40 +462,23 @@ const STEPS = [
   { step: '04', title: 'Swap & grow',     desc: 'Exchange knowledge over video and leave honest reviews.' },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function fmtStat(n) {
-  if (n == null) return '…';
-  if (n <= 0)    return '—';
-  return n >= 1000 ? `${(n / 1000).toFixed(1)}k+` : `${n}+`;
-}
+const STATS = [
+  { value: '—', label: 'Skill swaps'  },
+  { value: '—', label: 'Members'      },
+  { value: '200+', label: 'Skills listed' },
+  { value: '—', label: 'Avg rating' },
+];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [liveStats, setLiveStats] = useState(null);
 
   useEffect(() => {
     if (!loading && user) router.replace('/dashboard');
   }, [user, loading, router]);
 
-  useEffect(() => {
-    getStats().then(setLiveStats).catch(() => {});
-  }, []);
-
   if (loading) return null;
-
-  const STATS = [
-    { value: fmtStat(liveStats?.swaps),   label: 'Skill swaps'  },
-    { value: fmtStat(liveStats?.members), label: 'Members'      },
-    { value: '200+',                       label: 'Skills listed' },
-    {
-      value: liveStats
-        ? (liveStats.avgRating ? `${liveStats.avgRating}★` : '—')
-        : '…',
-      label: 'Avg rating',
-    },
-  ];
 
   return (
     <>

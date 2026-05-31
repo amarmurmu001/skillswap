@@ -132,7 +132,7 @@ export default function AdminPage() {
               fontWeight: 600,
               cursor: 'pointer',
               textTransform: 'capitalize',
-              transition: 'all 0.2s',
+               transition: 'background 0.2s, border-color 0.2s, color 0.2s',
             }}
           >
             {t}
