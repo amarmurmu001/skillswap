@@ -231,7 +231,7 @@ function SessionPreview({ session, other }) {
           {other && <div style={{ color: '#a0a0c0', fontSize: '0.78rem' }}>with {other.name}</div>}
           <div style={{ color: '#6366f1', fontSize: '0.78rem', marginTop: 4 }}>{formatDateTime(session.scheduledAt)}</div>
         </div>
-        <Link href={`/meeting/${session.matchId}`} className="btn-primary" style={{ fontSize: '0.75rem', padding: '0.4rem 0.875rem', textDecoration: 'none', flexShrink: 0 }}><span>Join</span></Link>
+        <Link href={`/meeting/${session.id}`} className="btn-primary" style={{ fontSize: '0.75rem', padding: '0.4rem 0.875rem', textDecoration: 'none', flexShrink: 0 }}><span>Join</span></Link>
       </div>
     </div>
   );

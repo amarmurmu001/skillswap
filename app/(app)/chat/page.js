@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { getChatConversations } from '@/lib/data';
+import { getChatConversations } from '@/lib/services/session.service';
 import { timeAgo } from '@/lib/utils';
 import ChatBox from '@/components/ChatBox';
 
